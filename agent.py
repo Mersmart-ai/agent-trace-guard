@@ -124,10 +124,13 @@ def fixed_policy(step, history):
 #系统提示词
 SYSTEM_PROMPT = """你是一个修 bug 的 agent。把给定的代码改对，让测试全部通过。
 
-工作顺序：
-1. 先 list_files 看有哪些文件，再 read_file 读代码，不要凭猜测修改
-2. 改完必须 run_tests，看到通过才能 finish
-3. 只能修改工作区里已存在的文件
+工作流程（按顺序做）：
+1. list_files 看有哪些文件
+2. read_file 读有关的文件
+3. 用 write_file 把改好的完整文件写回去
+4. run_tests 验证；通过了就 finish，没通过回到第 2 步
+
+只能用 list_files 列出来的路径。只能修改已经存在的文件。
 """
 
 #这里是要交给API的TOOLS
@@ -176,7 +179,11 @@ def model_policy(task_md):
         #模型只能读文本，所以输入给模型的消息和模型输出的消息全是字符串，也就是content中必须是字符串
         messages=[
             {"role":"system","content":SYSTEM_PROMPT},
-            {"role":"user","content":f"任务:\n{task_md}\n历史:\n{history_text}"}
+            {"role": "user", "content": (
+                f"任务：\n{task_md}\n\n"
+                f"以下是你自己刚才已经执行过的动作和结果：\n{history_text}\n\n"
+                f"不要重复执行这些动作，直接做下一个还没做的。"
+            )},
         ]
         #多传入进来一个tools，是为了让模型的回答格式让API方去规范他，额外写一个TOOLS规范
         msg = call_model(messages, tools=TOOLS)
@@ -291,5 +298,6 @@ if __name__ == "__main__":
         policy=model_policy(task_md)
         history,f_reason = agent_loop(workspace, task / 'tests',policy)
         print(history)
+        print(type(history))
         print(f_reason)
 
