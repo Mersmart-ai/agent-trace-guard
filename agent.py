@@ -2,7 +2,25 @@ import os,subprocess, sys
 from pathlib import Path
 import shutil
 import json
+from datetime import datetime
 from my_llm import call_model
+from locate import build_states, locate, render
+
+
+def parse_failed(output):
+    """从 pytest 输出里取出没通过的测试名。
+    pytest 的 -q 模式不列通过的测试，只列 FAILED / ERROR，所以只能拿到失败的。
+    """
+    names = []
+    for line in output.splitlines():
+        line = line.strip()
+        if line.startswith("FAILED ") or line.startswith("ERROR "):
+            node = line.split(None, 1)[1]        # 去掉开头的 FAILED/ERROR
+            node = node.split(" - ")[0]          # 去掉后面的错误详情
+            names.append(node.split("::")[-1])   # 只留测试函数名
+    return names
+
+
 def run_tests(workspace,tests):
     """
     此函数用来检验agent修改后的结果是否正确
@@ -16,8 +34,8 @@ def run_tests(workspace,tests):
         [sys.executable, "-m", "pytest", str(tests), "-q"],
         env=env, capture_output=True, text=True,  # 把刚刚的env赋给env，捕获子进程打印的东西，以文本格式输出。
     )
-    print(r.stdout)
-    return {"exit_code":r.returncode,"output":r.stdout,"error":r.stderr}
+    return {"exit_code":r.returncode,"output":r.stdout,"error":r.stderr,
+            "failed_tests":parse_failed(r.stdout)}
 def prepare_workspace(task_dir, run_dir):
     """
     用来复制原来的文件生成副本作为agent工作区，准备工作
@@ -175,12 +193,23 @@ TOOLS = [
 #模型的model_policy，为了解决不同task.md需要同步到相应的任务中，使用闭包的方式
 def model_policy(task_md):
     def fn_inner(step, history):
-        history_text = json.dumps(history, ensure_ascii=False)
+        # 给模型看的那份 history 要剥掉 test_state。
+        # 原因：write_file 这一步的 test_state 是 harness 强制判分算出来的，
+        #      不是模型自己测的。要是让它看见，它就永远不需要主动 run_tests，
+        #      "未验证就提交"这一类就统计不出来了。
+        # 模型自己调 run_tests 的那一步不受影响——测试结果在 result 里，照样看得到。
+        visible = []
+        for h in history:
+            h2 = dict(h)                    # 复制一份，别动原对象
+            h2.pop("test_state", None)      # 删掉这个键；不存在也不报错
+            visible.append(h2)
+        history_text = json.dumps(visible, ensure_ascii=False)
         #模型只能读文本，所以输入给模型的消息和模型输出的消息全是字符串，也就是content中必须是字符串
         messages=[
             {"role":"system","content":SYSTEM_PROMPT},
             {"role": "user", "content": (
                 f"任务：\n{task_md}\n\n"
+                #发现如果没有下面这两个提醒模型分不清历史是自己做的还是用户做的，导致一直list_files达到max_turns
                 f"以下是你自己刚才已经执行过的动作和结果：\n{history_text}\n\n"
                 f"不要重复执行这些动作，直接做下一个还没做的。"
             )},
@@ -192,6 +221,60 @@ def model_policy(task_md):
         tc = msg.tool_calls[0]#msg是一个对象，tc是一个字典，键是function，value有name、arguments
         args = json.loads(tc.function.arguments) if tc.function.arguments else {}#arguments对应path相对路径，如果没有，输出空字典
         return {"tool": tc.function.name, "args": args}
+    return fn_inner
+
+
+def to_text(x):
+    """工具结果转成字符串：list / dict 用 json 表示，模型看得懂。"""
+    return x if isinstance(x, str) else json.dumps(x, ensure_ascii=False)
+
+
+# ===== 方案 B：标准 assistant / tool 对话 =====
+# 和 model_policy 的区别：
+#   model_policy        —— 每轮把 history 拼成一段文字，塞进 user 消息里
+#   model_policy_structured —— 把 history 拆成 assistant(我调了什么) + tool(返回了什么)
+#                              交替的消息，模型能"认出"那是自己的动作
+#
+# 代价：必须关 thinking。否则 API 要求回传 reasoning_content，SDK 取不到，多轮会 400。
+# 用法：__main__ 里把 policy 换成 model_policy_structured(task_md) 即可，agent_loop 不用改。
+def model_policy_structured(task_md):
+    convo = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": f"任务：\n{task_md}"},
+    ]
+    pending = {"cid": None}  # 上一条 assistant 的 tool_call_id，等 loop 把结果还回来
+
+    def fn_inner(step, history):
+        # 上一轮的 assistant 已经发出去了，这里把它对应的工具结果补进对话
+        if pending["cid"] and history:
+            convo.append({
+                "role": "tool",
+                "tool_call_id": pending["cid"],
+                "content": to_text(history[-1]["result"]),
+            })
+            pending["cid"] = None
+
+        msg = call_model(convo, tools=TOOLS, thinking_off=True)
+
+        if not msg.tool_calls:
+            return {"tool": "bad_output", "args": {"raw": (msg.content or "")[:200]}}
+
+        tc = msg.tool_calls[0]
+        cid = f"call_{step}"
+        convo.append({
+            "role": "assistant",
+            "content": "",
+            "tool_calls": [{
+                "id": cid,
+                "type": "function",
+                "function": {"name": tc.function.name, "arguments": tc.function.arguments},
+            }],
+        })
+        pending["cid"] = cid
+
+        args = json.loads(tc.function.arguments) if tc.function.arguments else {}
+        return {"tool": tc.function.name, "args": args}
+
     return fn_inner
 
 #补一个工具list_files用来让模型知道相对路径有哪些
@@ -230,13 +313,25 @@ def make_step(step,tool,args,result,ok=True,test_state=None):
         "ok": ok,
         "test_state": test_state,
     }
+NO_CASE = "<pytest_no_case>"
+
+
 def judge_state(result):
-    """判断pytest的结果的状态，return的结果要赋给test_state,这里的result输入是run_tests运行的结果"""
-    if result.get('exit_code')==0:
-        return 'pass'
-    if result.get('exit_code')==1:
-        return 'fail'
-    return 'error'
+    """把 run_tests 的结果翻成 test_state。只有两种取值：
+        None  —— 这步没测（由 agent_loop 决定，不是这里返回的）
+        list  —— 没通过的测试名；[] 表示全过
+
+    以前这里会返回 "error" 字符串表示"导入失败"，导致 test_state 一会儿是字符串
+    一会儿是列表，下游每处都要先判断类型。现在统一成列表。
+
+    exit_code 非 0 却一条 FAILED/ERROR 都没抓到（pytest 自己崩了，或者
+    tests/ 里根本没有用例），返回 [NO_CASE] 而不是 []——否则会被误读成"全过"。
+    "跑不起来"变成"全部通过"，是最坏的一种静默错误。
+    """
+    if result.get("exit_code") == 0:
+        return []
+    failed = result.get("failed_tests", [])
+    return failed if failed else [NO_CASE]
 def judge_ok(result):
     """判断模型调用工具时是否成功接收了数据，return的结果要赋给ok，这里的result输入是read_file和write_file运行的结果"""
     if isinstance(result,str):
@@ -253,25 +348,30 @@ def agent_loop(workspace,tests,policy):
     :return:返回的是history用于下一步交付给model_policy，然后再传入模型
     """
     history = []
-    for step in range(1,11):
+    for step in range(1,21):
         action = {}#如果model_policy接不住异常，让action起码有值后面异常会被接住
         try:
             action = policy(step, history)
             if action["tool"] == "finish":
                 history.append(make_step(step,action["tool"],action["args"],"right_finish"))
                 break
+            test_state = None
             if action["tool"] == "list_files":
                 result = list_files(workspace)
             elif action["tool"] == "read_file":
                 result = read_file(workspace, action["args"]["path"])
             elif action["tool"] == "write_file":
                 result = write_file(workspace, action["args"]["path"], action["args"]["content"])
+                # 强制判分：写完由循环自动测一次，状态记在这一步上。
+                # 注意 result 仍然是"写入成功"，模型看不到这次测试的结果——
+                # 这样它自己调 run_tests 的记录还留着，可以统计"它有没有主动验证"。
+                test_state = judge_state(run_tests(workspace, tests))
             elif action["tool"] == "run_tests":
                 result = run_tests(workspace, tests)
+                test_state = judge_state(result)
             else:
                 result = f"【错误】：未知工具{action['tool']}"
             ok = judge_ok(result)
-            test_state = judge_state(result) if action["tool"] == "run_tests" else None
             history.append(make_step(step,action["tool"],action["args"],result,ok,test_state))
         except Exception as e:
             result=f"【错误】：{e}"
@@ -281,6 +381,55 @@ def agent_loop(workspace,tests,policy):
     else:
         reason="Hit max_turns"
     return history,reason
+def save_run(task_name,history,reason):
+    """
+    每一次的运行结果记录在相应的task内，与workspace平级
+    :param task_name:这次任务的名
+    :param history:这次任务运行的history
+    :param reason:这次任务结束的原因
+    :return:返回一个编号run_id
+    """
+    folder = Path("run_traces") / task_name  # ← 多了 / task_name
+    folder.mkdir(parents=True, exist_ok=True)  # ← 现在真要 parents 了
+
+    nums = []
+    for p in folder.glob("r*.json"):
+        nums.append(int(p.stem[1:]))  # "r01" → 1
+
+    if len(nums) == 0:
+        n = 1
+    else:
+        n = max(nums) + 1
+
+    path = folder / f"r{n:02d}.json"
+    run_id = f"{task_name}_r{n:02d}"  # 全局唯一的名字
+
+    data = {
+        "run_id": run_id,
+        "task": task_name,
+        "ts": datetime.now().isoformat(timespec="seconds"),
+        "reason": reason,
+        "steps": history,
+    }
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    return run_id
+
+
+def check_trace(history):
+    """自检：每个 write_file 步都必须带 test_state。
+
+    这是「强制判分生效」的标志。locate() 的正确性依赖这一条——
+    它把 test_state=None 理解成「这步不改变状态」，而只有强制判分存在时，
+    这个理解才成立（write 步一定是非 None）。
+    哪天强制判分被拆掉，这个函数会立刻报出异常步号，
+    而不是让 locate 的结果悄悄变错。
+
+    :return: 缺测试状态的 write_file 步号列表，空列表表示正常
+    """
+    return [h["step"] for h in history
+            if h["tool"] == "write_file" and h["test_state"] is None]
+
 
 if __name__ == "__main__":
     # workspace = prepare_workspace(Path("tasks/task_0003"), Path("runs/task_0003"))
@@ -291,13 +440,26 @@ if __name__ == "__main__":
     for task in sorted(Path("tasks").iterdir()):
         if not (task / "src").is_dir():
             continue
+        # 没有测试文件的 task 是"题目配错了"，不该产出一条 trace。
+        # 让脏数据进 trace，比不跑更糟——以后分析时会把"没测"当成"通过了"。
+        if not list((task / "tests").glob("test_*.py")):
+            print(f"⚠️  {task.name}: tests/ 里没有 test_*.py，跳过")
+            continue
         workspace=prepare_workspace(task,Path('runs')/task.name)
         task_md=(task / "task.md").read_text(encoding="utf-8")
         if workspace is None:
             continue
-        policy=model_policy(task_md)
+        policy=model_policy(task_md)   # 换回方案 A 就改成 model_policy(task_md)；方案B改成model_policy_structured
         history,f_reason = agent_loop(workspace, task / 'tests',policy)
-        print(history)
-        print(type(history))
-        print(f_reason)
+
+        bad = check_trace(history)
+        if bad:
+            print(f"⚠️  {task.name}: 第 {bad} 步写了文件却没有测试状态，强制判分可能没生效")
+
+        run_id = save_run(task.name, history, f_reason)
+        print(f"[saved] {run_id}  {f_reason}  {len(history)} 步")
+
+        # 归因：先把每步的测试状态摊成一串，再分别看形状和结论
+        states = build_states(history)
+        print(f"  {render(states)}  ->  {locate(states)}")
 

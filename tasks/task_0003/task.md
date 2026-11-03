@@ -6,14 +6,7 @@
 
 ```
 >>> mean([])
-ZeroDivisionError: division by zero      # 期望 0
-```
-
-正常输入是好的：
-
-```
->>> mean([2, 4, 6])
-4.0
+ZeroDivisionError: division by zero
 ```
 
 ## 要求
