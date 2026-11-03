@@ -1,0 +1,14 @@
+.venv/
+.idea/
+__pycache__/
+*.pyc
+.pytest_cache/
+.env
+runs/
+
+# 实验数据：每跑一次涨几个文件，不进版本库
+run_traces/
+
+# 含私人协作内容，不进版本库
+docs/设计-给她-协作说明.md
+docs/设计-项目全貌.md
