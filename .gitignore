@@ -12,3 +12,6 @@ run_traces/
 # 含私人协作内容，不进版本库
 docs/设计-给她-协作说明.md
 docs/设计-项目全貌.md
+
+# 临时验证目录
+_verify_clone/

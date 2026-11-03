@@ -1,6 +1,6 @@
 {
   "id": "task_0004",
-  "difficulty": "medium",
   "initial_failed_tests": 1,
-  "total_tests": 4
+  "total_tests": 4,
+  "structure": "multi_file"
 }

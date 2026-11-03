@@ -1,0 +1,6 @@
+{
+  "id": "quix_levenshtein",
+  "difficulty": "hard",
+  "initial_failed_tests": 7,
+  "total_tests": 7
+}

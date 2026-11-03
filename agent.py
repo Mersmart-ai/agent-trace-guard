@@ -21,19 +21,31 @@ def parse_failed(output):
     return names
 
 
+TIMEOUT_SEC = 10
+
+
 def run_tests(workspace,tests):
     """
     此函数用来检验agent修改后的结果是否正确
     :param workspace:agent工作区的路径
     :param tests:pytest测试的路径，是task原文件下的，agent接触不到
     :return:返回退出码，也就是pytest的结果的退出码，不是0就说明出错
+
+    必须带超时：被测代码可能死循环（比如把 n &= n-1 写成 n ^= n-1），
+    没有 timeout 的话 subprocess.run 会永久阻塞，整批跑卡死在这里。
     """
     env = dict(os.environ)
     env["PYTHONPATH"]=str(Path(workspace).resolve())#相对路径变为绝对路径再化为字符串
-    r = subprocess.run(  # subprocess.run启动另一个进程pytest
-        [sys.executable, "-m", "pytest", str(tests), "-q"],
-        env=env, capture_output=True, text=True,  # 把刚刚的env赋给env，捕获子进程打印的东西，以文本格式输出。
-    )
+    try:
+        r = subprocess.run(  # subprocess.run启动另一个进程pytest
+            [sys.executable, "-m", "pytest", str(tests), "-q"],
+            env=env, capture_output=True, text=True,  # 把刚刚的env赋给env，捕获子进程打印的东西，以文本格式输出。
+            timeout=TIMEOUT_SEC,
+        )
+    except subprocess.TimeoutExpired:
+        return {"exit_code": -1, "output": "",
+                "error": f"pytest 超过 {TIMEOUT_SEC} 秒没结束，可能死循环",
+                "failed_tests": ["<timeout>"]}
     return {"exit_code":r.returncode,"output":r.stdout,"error":r.stderr,
             "failed_tests":parse_failed(r.stdout)}
 def prepare_workspace(task_dir, run_dir):
