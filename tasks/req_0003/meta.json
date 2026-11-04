@@ -1,0 +1,8 @@
+{
+  "id": "req_0003",
+  "origin": "requests@47914226 (PR #7205)",
+  "structure": "multi_module",
+  "note": "18 个模块 5629 行。bug 在 utils.py 的 get_netrc_auth，只判断了元组存在，没判断里面有没有值。",
+  "total_tests": 219,
+  "initial_failed": 1
+}

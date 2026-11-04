@@ -1,0 +1,8 @@
+{
+  "id": "req_0002",
+  "origin": "requests@a4f9a599 (PR #7427, 移植 bpo-39057)",
+  "structure": "multi_module",
+  "note": "18 个模块 5629 行。bug 在 utils.py 的 should_bypass_proxies，域名匹配用了 endswith 导致 prelocalhost 误匹配 localhost。",
+  "total_tests": 229,
+  "initial_failed": 1
+}

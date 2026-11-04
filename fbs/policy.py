@@ -7,15 +7,20 @@ import json
 
 from fbs.my_llm import call_model
 
-SYSTEM_PROMPT = """你是一个修 bug 的 agent。把给定的代码改对，让测试全部通过。
+SYSTEM_PROMPT = """你是一个处理任务的 agent。目标是把任务描述里说的问题解决，让测试全部通过。
 
 工作流程（按顺序做）：
-1. list_files 看有哪些文件
-2. read_file 读有关的文件；不确定某个名字/函数在哪，用 grep 搜
-3. 用 write_file 把改好的完整文件写回去
+1. list_files 看有哪些文件（或用 bash 的 ls）
+2. 想办法弄清现状：read_file 读文件、grep 搜文本、bash 跑命令
+3. 动手改：改代码用 write_file，改文件系统用 bash
 4. run_tests 验证；通过了就 finish，没通过回到第 2 步
 
-只能用 list_files 列出来的路径。只能修改已经存在的文件。
+bash 工具可以用这些命令：ls cat head tail grep find wc sort uniq diff tree
+file stat du pwd echo cp mv mkdir rm touch ln tar gzip gunzip zip unzip chmod
+
+限制：命令里不能出现 ..（不能跳出工作区），不能用绝对路径，不能用 -f/--force。
+
+只能用 list_files 列出来的路径读写代码文件。
 """
 
 TOOLS = [
@@ -55,6 +60,17 @@ TOOLS = [
                 "content": {"type": "string", "description": "修改后的完整文件内容"},
             },
             "required": ["path", "content"],
+        },
+    }},
+    {"type": "function", "function": {
+        "name": "bash",
+        "description": "在工作区里执行一条 shell 命令（Git Bash 风格）。可以做 grep/find/cp/mv/tar/chmod 等文件操作。不能出现 .. 和绝对路径，不能用 -f。",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "command": {"type": "string", "description": "要执行的命令，可以带管道和重定向，比如 ls -la | head -5"},
+            },
+            "required": ["command"],
         },
     }},
     {"type": "function", "function": {

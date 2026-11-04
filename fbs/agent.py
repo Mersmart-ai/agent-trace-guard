@@ -23,9 +23,12 @@ from fbs.trace import check_trace, prepare_workspace, save_run
 def main():
     # 只跑一个任务：填相对路径，比如 "tasks/boltons_0002"
     # 跑全部：改成 None
-    ONLY = "tasks/boltons_0002"
+    # 可以填一个路径、一个路径列表，或者 None（跑全部）
+    ONLY = "tasks/req_0003"
 
-    todo = [Path(ONLY)] if ONLY else sorted(Path("tasks").iterdir())
+    if isinstance(ONLY, str):
+        ONLY = [ONLY]
+    todo = [Path(p) for p in ONLY] if ONLY else sorted(Path("tasks").iterdir())
 
     for task in todo:
         if not (task / "src").is_dir():

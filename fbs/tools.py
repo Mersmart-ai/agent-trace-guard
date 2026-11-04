@@ -5,11 +5,110 @@ agent_loop 根据模型选的工具名，来这里调对应的函数。
 """
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 TIMEOUT_SEC = 10
+BASH_TIMEOUT = 30
+
+# 必须显式找 bash。Windows 上 shell=True 默认用 cmd.exe，
+# 那样 mkdir -p 会被 cmd 的 mkdir 解释（它不认 -p），
+# grep/find/tar 的行为也不一样。所以命令要交给 bash 执行。
+BASH = shutil.which("bash") or r"C:\Program Files\Git\bin\bash.exe"
+
+# bash 工具只允许这些命令。加不进来的一律拒绝。
+# 特别注意：不能放 python / sh / bash / eval / sudo / curl / wget
+# —— 它们能绕过下面所有的防护。
+ALLOWED = {
+    # 看
+    "ls", "cat", "head", "tail", "grep", "find", "wc", "sort", "uniq",
+    "diff", "tree", "file", "stat", "du", "pwd", "echo",
+    # 改
+    "cp", "mv", "mkdir", "rm", "touch", "ln",
+    # 压缩
+    "tar", "gzip", "gunzip", "zip", "unzip",
+    # 权限
+    "chmod",
+}
+
+# 这些命令一出现就拒绝（哪怕在白名单里）
+DENY_FLAGS = {"-f", "--force", "-rf", "-fr"}
+
+
+def _check_command(command):
+    """检查一条 shell 命令能不能跑。返回 (ok, 原因)。
+
+    三道防线：
+      1. 不许出现 ..            → 挡住 cat ../../tests/x.py
+      2. 不许出现绝对路径        → 挡住 cat /etc/passwd（/dev/null 例外）
+      3. 每一段的第一个词必须在白名单 → 按 | && || ; 切开逐段查
+    """
+    if ".." in command:
+        return False, "命令里不能出现 ..（会跳出工作区）"
+
+    for token in command.split():
+        if token.startswith("/") and token != "/dev/null":
+            return False, f"不能使用绝对路径：{token}"
+
+    for seg in re.split(r"\|\||&&|[|;]", command):
+        seg = seg.strip()
+        if not seg:
+            continue
+        first = seg.split()[0]
+        if first not in ALLOWED:
+            return False, f"不允许的命令：{first}"
+
+    for bad in DENY_FLAGS:
+        if re.search(rf"(^|\s){re.escape(bad)}(\s|$)", command):
+            return False, f"不允许的参数：{bad}"
+
+    return True, ""
+
+
+def _clip(text, limit=3000):
+    """截断过长输出，保留开头（文件名列表这类信息都在开头）。
+
+    text 可能是 None：子进程解码失败时 stderr 会是 None，不能直接 len()。
+    """
+    if not text:
+        return ""
+    if len(text) <= limit:
+        return text
+    return text[:limit] + f"\n...（已截断，原文共 {len(text)} 字符）"
+
+
+def bash(workspace, command):
+    """在工作区里执行一条 shell 命令。
+
+    cwd 固定在 workspace，所以相对路径都落在工作区里面。
+    配合 _check_command 的禁 .. 和禁绝对路径，模型跳不出去。
+
+    :param command:模型给的命令字符串，可以带管道、重定向
+    :return:{"exit_code": 退出码, "stdout": ..., "stderr": ...}
+    """
+    ok, reason = _check_command(command)
+    if not ok:
+        return {"exit_code": 126, "stdout": "", "stderr": f"【拒绝】{reason}"}
+
+    try:
+        r = subprocess.run(
+            [BASH, "-c", command], cwd=str(Path(workspace).resolve()),
+            capture_output=True, text=True, timeout=BASH_TIMEOUT,
+            # Windows 上子进程输出不一定是 UTF-8，不加 errors="replace"
+            # 会在解码时抛 UnicodeDecodeError，stderr 变成 None，后面崩。
+            encoding="utf-8", errors="replace",
+        )
+    except subprocess.TimeoutExpired:
+        return {"exit_code": 124, "stdout": "",
+                "stderr": f"【超时】命令超过 {BASH_TIMEOUT} 秒没结束"}
+    except Exception as e:
+        return {"exit_code": 1, "stdout": "", "stderr": f"【错误】{e}"}
+
+    return {"exit_code": r.returncode,
+            "stdout": _clip(r.stdout),
+            "stderr": _clip(r.stderr)}
 
 
 def parse_failed(output):
@@ -93,7 +192,10 @@ def grep(workspace, pattern, path="."):
         rx = re.compile(re.escape(pattern))
 
     hits = []
-    for f in sorted(target.rglob("*.py")):
+    # path 可以是目录也可以是单个文件。rglob 在文件上会返回空，
+    # 所以文件要单独处理——模型经常直接把路径指到某个文件上。
+    files = [target] if target.is_file() else sorted(target.rglob("*.py"))
+    for f in files:
         if "__pycache__" in f.parts:
             continue
         try:

@@ -1,0 +1,8 @@
+{
+  "id": "req_0001",
+  "origin": "requests@f0198e6d (PR #7309)",
+  "structure": "multi_module",
+  "note": "18 个模块 5629 行。bug 在 utils.py 的 _parse_content_type_header，修复重写了参数解析循环。",
+  "total_tests": 220,
+  "initial_failed": 5
+}

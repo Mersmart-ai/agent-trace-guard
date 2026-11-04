@@ -6,7 +6,7 @@
 """
 from fbs.judge import judge_ok, judge_state
 from fbs.my_llm import OutOfCredit
-from fbs.tools import grep, list_files, read_file, run_tests, write_file
+from fbs.tools import bash, grep, list_files, read_file, run_tests, write_file
 from fbs.trace import make_step
 
 MAX_TURNS = 30
@@ -39,6 +39,10 @@ def agent_loop(workspace, tests, policy):
                 result = grep(workspace,
                               action["args"].get("pattern", ""),
                               action["args"].get("path", "."))
+            elif action["tool"] == "bash":
+                # bash 的退出码只说明"这条命令成没成"，不代表测试状态，
+                # 所以 test_state 保持 None，不当成一次判分。
+                result = bash(workspace, action["args"].get("command", ""))
             elif action["tool"] == "write_file":
                 result = write_file(workspace, action["args"]["path"], action["args"]["content"])
                 # 强制判分：写完由循环自动测一次，状态记在这一步上。
