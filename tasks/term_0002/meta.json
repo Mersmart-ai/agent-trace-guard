@@ -1,0 +1,7 @@
+{
+  "id": "term_0002",
+  "kind": "terminal",
+  "note": "按月份归档。坑：要建两层目录、用 mv 不是 cp、README.txt 例外。",
+  "total_tests": 4,
+  "initial_failed": 4
+}

@@ -1,0 +1,7 @@
+{
+  "id": "term_0003",
+  "kind": "terminal",
+  "note": "按数字顺序拼接。坑：part_*.txt 按字典序是 1,10,11,2,...，直接 cat 会乱序。",
+  "total_tests": 3,
+  "initial_failed": 2
+}

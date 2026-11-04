@@ -1,0 +1,7 @@
+{
+  "id": "term_0001",
+  "kind": "terminal",
+  "note": "按扩展名分类。四个坑：.JPG 大写、.jpeg、.hidden 隐藏文件、README.md 例外。",
+  "total_tests": 5,
+  "initial_failed": 5
+}
