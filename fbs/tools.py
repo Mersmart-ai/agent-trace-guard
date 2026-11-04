@@ -1,0 +1,137 @@
+"""agent 能用的工具：列文件、读文件、写文件、跑测试、搜文本。
+
+这些函数都是"纯操作"——不碰模型，也不碰判分。
+agent_loop 根据模型选的工具名，来这里调对应的函数。
+"""
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+TIMEOUT_SEC = 10
+
+
+def parse_failed(output):
+    """从 pytest 输出里取出没通过的测试名。
+    pytest 的 -q 模式不列通过的测试，只列 FAILED / ERROR，所以只能拿到失败的。
+    """
+    names = []
+    for line in output.splitlines():
+        line = line.strip()
+        if line.startswith("FAILED ") or line.startswith("ERROR "):
+            node = line.split(None, 1)[1]        # 去掉开头的 FAILED/ERROR
+            node = node.split(" - ")[0]          # 去掉后面的错误详情
+            names.append(node.split("::")[-1])   # 只留测试函数名
+    return names
+
+
+def list_files(workspace):
+    root = Path(workspace).resolve()
+    out = []
+    for f in sorted(root.rglob("*")):
+        if not f.is_file():  # f是不是一个文件
+            continue
+        # __pycache__ 是 Python 自动生成的字节码缓存目录。
+        if "__pycache__" in f.parts:
+            continue
+        if f.suffix != ".py":  # 只列 .py
+            continue
+        out.append(f.relative_to(root).as_posix())
+    return out
+
+
+def read_file(workspace, path):
+    """
+    agent用来读文件的函数
+    :param workspace:工作区路径，agent 接触不到 tests
+    :param path:相对路径，拼在工作区后面
+    :return:文本字符串，交给大模型看的
+    """
+    root = Path(workspace).resolve()
+    full = (root / path).resolve()
+    # 判断 full 在不在 root 下面，防止 agent 用 ../ 跑出去找到 tests
+    if not full.is_relative_to(root):
+        return "【错误】：路径越界"
+    if not full.is_file():
+        return f"【错误】：该文件不存在，可用文件：{'\n'.join(list_files(workspace))}"
+    return full.read_text(encoding="utf-8")
+
+
+def write_file(workspace, path, content):
+    """
+    agent用来改写文件的函数
+    :param workspace:工作区路径，agent 接触不到 tests
+    :param path:相对路径
+    :param content:改写后的完整文件内容
+    :return:文本字符串，说明是否写入成功
+    """
+    root = Path(workspace).resolve()
+    full = (root / path).resolve()
+    if not full.is_relative_to(root):
+        return "【错误】：路径越界"
+    if not full.is_file():
+        return f"【错误】：该文件不存在，可用文件：{'\n'.join(list_files(workspace))}"
+    full.write_text(content, encoding="utf-8")
+    return "写入成功"
+
+
+def grep(workspace, pattern, path="."):
+    """在工作区里搜文本，返回 "文件:行号: 内容"。
+
+    :param pattern:按正则解释；写不成正则就按字面量搜
+    :param path:限定在哪个子目录里搜，默认整个工作区
+    :return:最多 100 条，超了截断
+    """
+    ws = Path(workspace).resolve()
+    target = (ws / path).resolve()
+    if not target.is_relative_to(ws):
+        return "【错误】：路径越界"
+    try:
+        rx = re.compile(pattern)
+    except re.error:
+        rx = re.compile(re.escape(pattern))
+
+    hits = []
+    for f in sorted(target.rglob("*.py")):
+        if "__pycache__" in f.parts:
+            continue
+        try:
+            text = f.read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError):
+            continue
+        for i, line in enumerate(text.splitlines(), 1):
+            if rx.search(line):
+                hits.append(f"{f.relative_to(ws).as_posix()}:{i}: {line.strip()[:160]}")
+                if len(hits) >= 100:
+                    return "\n".join(hits) + "\n...（超过 100 条，已截断）"
+    return "\n".join(hits) if hits else "（没有匹配）"
+
+
+def run_tests(workspace, tests):
+    """
+    此函数用来检验agent修改后的结果是否正确
+    :param workspace:agent工作区的路径
+    :param tests:pytest测试的路径，是task原文件下的，agent接触不到
+    :return:退出码 + 没通过的测试名
+
+    必须带超时：被测代码可能死循环（比如把 n &= n-1 写成 n ^= n-1），
+    没有 timeout 的话 subprocess.run 会永久阻塞，整批跑卡死在这里。
+    """
+    env = dict(os.environ)
+    env["PYTHONPATH"] = str(Path(workspace).resolve())
+    try:
+        r = subprocess.run(  # 启动另一个进程跑 pytest
+            [sys.executable, "-m", "pytest", str(tests), "-q"],
+            env=env, capture_output=True, text=True,
+            timeout=TIMEOUT_SEC,
+        )
+    except subprocess.TimeoutExpired:
+        return {"exit_code": -1, "failed_tests": ["<timeout>"]}
+    # 故意不返回 output / error。
+    # pytest 失败时会把测试源码打出来，形如：
+    #     >  assert list(strutils.iter_splitlines(text)) == ['', 'first', ...]
+    # 函数名、调用方式、期望值全在里面，等于把答案直接给模型。
+    # 真实场景里报 bug 的用户只会说"结果不对"，不会给你测试源码。
+    return {"exit_code": r.returncode,
+            "failed_tests": parse_failed(r.stdout)}

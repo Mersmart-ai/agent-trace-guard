@@ -3,7 +3,8 @@ import os
 from openai import OpenAI
 from dotenv import load_dotenv
 
-load_dotenv(Path(__file__).with_name(".env"))
+# .env 在项目根目录，不在 fbs/ 里
+load_dotenv(Path(__file__).parent.parent / ".env")
 
 
 class OutOfCredit(Exception):
