@@ -3,7 +3,7 @@ from pathlib import Path
 import shutil
 import json
 from datetime import datetime
-from my_llm import call_model
+from my_llm import call_model, OutOfCredit
 from locate import build_states, locate, render
 
 
@@ -43,11 +43,15 @@ def run_tests(workspace,tests):
             timeout=TIMEOUT_SEC,
         )
     except subprocess.TimeoutExpired:
-        return {"exit_code": -1, "output": "",
-                "error": f"pytest 超过 {TIMEOUT_SEC} 秒没结束，可能死循环",
-                "failed_tests": ["<timeout>"]}
-    return {"exit_code":r.returncode,"output":r.stdout,"error":r.stderr,
-            "failed_tests":parse_failed(r.stdout)}
+        return {"exit_code": -1, "failed_tests": ["<timeout>"]}
+    # 故意不返回 output / error。
+    # pytest 失败时会把测试源码打出来，形如：
+    #     >  assert list(strutils.iter_splitlines(text)) == ['', 'first', ...]
+    # 函数名、调用方式、期望值全在里面，等于把答案直接给模型。
+    # 真实场景里报 bug 的用户只会说"结果不对"，不会给你测试源码。
+    # 所以模型只能看到"哪几条挂了"，剩下的自己读代码去找。
+    return {"exit_code": r.returncode,
+            "failed_tests": parse_failed(r.stdout)}
 def prepare_workspace(task_dir, run_dir):
     """
     用来复制原来的文件生成副本作为agent工作区，准备工作
@@ -360,7 +364,7 @@ def agent_loop(workspace,tests,policy):
     :return:返回的是history用于下一步交付给model_policy，然后再传入模型
     """
     history = []
-    for step in range(1,21):
+    for step in range(1,31):
         action = {}#如果model_policy接不住异常，让action起码有值后面异常会被接住
         try:
             action = policy(step, history)
@@ -385,6 +389,9 @@ def agent_loop(workspace,tests,policy):
                 result = f"【错误】：未知工具{action['tool']}"
             ok = judge_ok(result)
             history.append(make_step(step,action["tool"],action["args"],result,ok,test_state))
+        except OutOfCredit:
+            # 余额不足不是任务失败，别当成【错误】记下去。往上抛，让 main 停掉整批。
+            raise
         except Exception as e:
             result=f"【错误】：{e}"
             history.append(make_step(step,action.get("tool"),action.get("args") or {},result,False))
@@ -444,12 +451,13 @@ def check_trace(history):
 
 
 if __name__ == "__main__":
-    # workspace = prepare_workspace(Path("tasks/task_0003"), Path("runs/task_0003"))
-    # policy=model_policy(Path("tasks/task_0003/task.md").read_text(encoding="utf-8"))
-    # history,f_reason = agent_loop(workspace, Path("tasks/task_0003/tests"),policy)
-    # print(history)
-    # print(f_reason)
-    for task in sorted(Path("tasks").iterdir()):
+    # 只跑一个任务：填相对路径，比如 "tasks/_calibration/contradictory"
+    # 跑全部：改成 None
+    ONLY = "tasks/boltons_0002"
+
+    todo = [Path(ONLY)] if ONLY else sorted(Path("tasks").iterdir())
+
+    for task in todo:
         if not (task / "src").is_dir():
             continue
         # 没有测试文件的 task 是"题目配错了"，不该产出一条 trace。
@@ -462,7 +470,13 @@ if __name__ == "__main__":
         if workspace is None:
             continue
         policy=model_policy(task_md)   # 换回方案 A 就改成 model_policy(task_md)；方案B改成model_policy_structured
-        history,f_reason = agent_loop(workspace, task / 'tests',policy)
+        try:
+            history,f_reason = agent_loop(workspace, task / 'tests',policy)
+        except OutOfCredit as e:
+            print(f"❌ API 余额不足，停在 {task.name}。")
+            print("   已经跑完的任务 trace 是有效的，后面的没有生成。")
+            print(f"   原始报错：{e}")
+            break
 
         bad = check_trace(history)
         if bad:

@@ -1,0 +1,7 @@
+{
+  "id": "boltons_0002",
+  "origin": "boltons@c463d163",
+  "structure": "multi_module",
+  "note": "要改 dictutils.py 和 urlutils.py 两处。改完第一处，test_urlutils 那条还挂着。",
+  "total_tests": 153
+}

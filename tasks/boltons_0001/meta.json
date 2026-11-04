@@ -1,0 +1,7 @@
+{
+  "id": "boltons_0001",
+  "origin": "boltons@45a2511 (issue #475)",
+  "structure": "multi_module",
+  "note": "30 个模块 17381 行，bug 只在 strutils.py 的一行里",
+  "total_tests": 27
+}

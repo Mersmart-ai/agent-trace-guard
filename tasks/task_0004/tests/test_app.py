@@ -3,7 +3,7 @@ import pytest
 from app import run
 
 
-def test_total():
+def test_case_1():
     assert run()["total"] == 15
 
 

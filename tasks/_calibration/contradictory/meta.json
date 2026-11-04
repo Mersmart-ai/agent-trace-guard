@@ -1,0 +1,7 @@
+{
+  "id": "contradictory",
+  "kind": "calibration",
+  "structure": "single_file",
+  "note": "两条断言互相矛盾，必然失败。只用来验证失败路径的管道，不进评测统计。",
+  "total_tests": 2
+}
