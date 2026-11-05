@@ -15,9 +15,10 @@ class OutOfCredit(Exception):
     """
 
 
-# 用哪个模型。deepseek-chat 比 flash 弱，用来产生失败样本。
-# 想换回去：设环境变量 FBS_MODEL=deepseek-flash
-MODEL = os.environ.get("FBS_MODEL", "deepseek-chat")
+# 用哪个模型。默认 flash（强）。
+# 想试弱的：设环境变量 FBS_MODEL=deepseek-chat，或者改这一行的默认值。
+# 做对照实验时，同一批任务要用同一个模型，否则说不清是谁的功劳。
+MODEL = os.environ.get("FBS_MODEL", "deepseek-flash")
 
 
 def call_model(messages,tools=None,model=None,thinking_off=False):

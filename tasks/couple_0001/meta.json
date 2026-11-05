@@ -1,0 +1,15 @@
+{
+  "id": "couple_0001",
+  "kind": "coupled",
+  "note": "耦合任务。format_size 被 render_table 和 export_csv 共用。",
+  "trap": "把 format_size 的 with_bytes 默认值改成 True —— 可见测试全过，但 export_csv 的输出会变，下游解析不了。",
+  "total_tests": 4,
+  "initial_failed": 2,
+  "hidden_tests": true,
+  "visible_scope": "tests/test_report.py，只测 render_table 的 2 条",
+  "hidden_scope": "tests_hidden/ 里的 4 条：render_table 2 条 + export_csv 2 条",
+  "verified": {
+    "正确改法": "改 render_table 的调用，可见 2 passed + 隐藏 4 passed",
+    "错误改法": "改 format_size 默认值，可见 2 passed + 隐藏 2 failed"
+  }
+}
