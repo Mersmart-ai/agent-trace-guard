@@ -12,7 +12,8 @@ def test_build_states():
         {"step": 2, "test_state": []},
         {"step": 3, "test_state": ["a"]},
     ]
-    assert build_states(history) == [None, [], ["a"]]
+    # 现在返回 dict（带 judge），因为多轮任务里判据会换
+    assert [x["test_state"] for x in build_states(history)] == [None, [], ["a"]]
 
 
 def test_build_states_length_equals_steps():

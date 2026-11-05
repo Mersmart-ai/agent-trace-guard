@@ -29,6 +29,7 @@ def agent_loop(workspace, tests, policy, judge_tests=None, opts=None):
     :return:(history, reason)
     """
     judge_dir = judge_tests or tests
+    judge_name = Path(judge_dir).name if judge_tests else None
     opts = opts or {}
     py = opts.get("python")
     visible_cmd = opts.get("visible_command")
@@ -43,6 +44,7 @@ def agent_loop(workspace, tests, policy, judge_tests=None, opts=None):
                 break
 
             test_state = None
+            step_judge = None
             if action["tool"] == "list_files":
                 result = list_files(workspace)
             elif action["tool"] == "read_file":
@@ -58,12 +60,14 @@ def agent_loop(workspace, tests, policy, judge_tests=None, opts=None):
                 # 根本看不出"哪一步把东西弄坏了"。
                 # 代价：只读命令（ls / cat）也白跑一次测试，0.1 秒，可以接受。
                 test_state = judge_state(run_tests(workspace, judge_dir, python=py, command=judge_cmd))
+                step_judge = judge_name
             elif action["tool"] == "write_file":
                 result = write_file(workspace, action["args"]["path"], action["args"]["content"])
                 # 强制判分：写完由循环自动测一次，状态记在这一步上。
                 # 注意 result 仍然是"写入成功"——模型看不到这次测试的结果，
                 # 这样它自己调 run_tests 的记录还留着，可以统计"它有没有主动验证"。
                 test_state = judge_state(run_tests(workspace, judge_dir, python=py, command=judge_cmd))
+                step_judge = judge_name
             elif action["tool"] == "run_tests":
                 # 两套测试分开：模型看到的（tests）和记进 trace 的（judge_dir）。
                 # 没配隐藏测试时两者相同，只跑一次。
@@ -71,13 +75,15 @@ def agent_loop(workspace, tests, policy, judge_tests=None, opts=None):
                 if judge_tests or judge_cmd:
                     test_state = judge_state(
                         run_tests(workspace, judge_dir, python=py, command=judge_cmd))
+                    step_judge = judge_name
                 else:
                     test_state = judge_state(result)
             else:
                 result = f"【错误】：未知工具{action['tool']}"
 
             ok = judge_ok(result)
-            history.append(make_step(step, action["tool"], action["args"], result, ok, test_state))
+            history.append(make_step(step, action["tool"], action["args"], result, ok,
+                                      test_state, step_judge))
         except OutOfCredit:
             # 余额不足不是任务失败，别当成【错误】记下去。往上抛，让 main 停掉整批。
             raise

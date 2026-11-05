@@ -29,9 +29,18 @@ locate 返回四种东西，互不重叠：
 """
 
 
+def _state(x):
+    """兼容两种输入：dict（含 test_state + judge）或裸的 list。"""
+    return x.get("test_state") if isinstance(x, dict) else x
+
+
 def build_states(history):
-    """把每步的 test_state 按顺序取出来，下标 = 步号 - 1。"""
-    return [h["test_state"] for h in history]#这里的返回值赋给states作为render和locate的输入
+    """每步取出 test_state 和它用的是哪套判据。
+
+    返回 dict 而不是裸列表，是因为多轮任务里判据会换：
+    不记 judge 的话，"换了一套判据"会被误当成"某条测试变红"。
+    """
+    return [{"test_state": h.get("test_state"), "judge": h.get("judge")} for h in history]
 
 
 def render(states):
@@ -41,6 +50,7 @@ def render(states):
     """
     out = []
     for s in states:
+        s = _state(s)
         if s is None:
             out.append(".")
         elif not s:
@@ -55,8 +65,9 @@ def locate(states):
     # 第一步：最终还剩谁没过 —— 从后往前找最后一个测过的格子
     final = None
     for s in reversed(states):
-        if s is not None:
-            final = set(s)
+        v = _state(s)
+        if v is not None:
+            final = set(v)
             break
 
     if final is None:
@@ -70,9 +81,10 @@ def locate(states):
     for name in final:
         prev_in = None       # None=还不知道 / False=不在 / True=在
         for i, s in enumerate(states):
-            if s is None:
+            v = _state(s)
+            if v is None:
                 continue
-            cur_in = name in s
+            cur_in = name in v
             if cur_in and prev_in is None:
                 result[name] = 0         # 第一次测就坏 → 基线
             elif cur_in and prev_in is False:
@@ -98,15 +110,25 @@ def regressions(states):
     """
     out = {}
     prev = None      # 上一步的失败集合；None 表示还没测过
-    for i, s in enumerate(states, 1):
+    prev_judge = None
+    for i, h in enumerate(states, 1):
+        if isinstance(h, dict):
+            s, judge = h.get("test_state"), h.get("judge")
+        else:
+            s, judge = h, None
+
         if s is None:
             continue
+
         cur = set(s)
-        if prev is None:
-            # 第一次测到，当作基线。基线本身就是红的，不算这次弄坏的。
+        # 判据换了一套（多轮任务），"新出现的红"不代表是这一步弄坏的，
+        # 只是这套判据里本来就有这条测试。此时重置基线。
+        if prev is None or judge != prev_judge:
             prev = cur
+            prev_judge = judge
             continue
-        new_red = cur - prev        # 这一步新变红的
+
+        new_red = cur - prev
         if new_red:
             out[i] = sorted(new_red)
         prev = cur

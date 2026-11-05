@@ -29,7 +29,7 @@ def prepare_workspace(task_dir, run_dir):
     return None
 
 
-def make_step(step, tool, args, result, ok=True, test_state=None):
+def make_step(step, tool, args, result, ok=True, test_state=None, judge=None):
     """
     格式化 history 里的一步。
 
@@ -39,6 +39,8 @@ def make_step(step, tool, args, result, ok=True, test_state=None):
     :param result:工具返回的结果
     :param ok:调用是否成功拿到数据
     :param test_state:这一步的测试状态（只有 write / run_tests 才有值）
+    :param judge:这一步用的是哪套判据（目录名）。多轮任务里每轮判据不同，
+                 不记这个的话，regressions 会把"换了一套判据"误当成"某条测试变红"。
     :return:可以序列化成 json 的字典
     """
     return {
@@ -48,6 +50,7 @@ def make_step(step, tool, args, result, ok=True, test_state=None):
         "result": result,
         "ok": ok,
         "test_state": test_state,
+        "judge": judge,
     }
 
 
