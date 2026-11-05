@@ -14,7 +14,7 @@
 import json
 from pathlib import Path
 
-from fbs.locate import build_states, locate, render
+from fbs.locate import build_states, locate, regressions, render
 from fbs.loop import agent_loop
 from fbs.my_llm import OutOfCredit
 from fbs.policy import model_policy
@@ -90,7 +90,10 @@ def main():
 
         # 归因：先把每步的测试状态摊成一串，再分别看形状和结论
         states = build_states(history)
-        print(f"  {render(states)}  ->  {locate(states)}")
+        print(f"  {render(states)}  ->  locate={locate(states)}")
+        reg = regressions(states)
+        if reg:
+            print(f"      regressions={reg}")
 
 
 if __name__ == "__main__":

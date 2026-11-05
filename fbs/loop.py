@@ -83,7 +83,10 @@ def agent_loop(workspace, tests, policy, judge_tests=None, opts=None):
             raise
         except Exception as e:
             result = f"【错误】：{e}"
-            history.append(make_step(step, action.get("tool"), action.get("args") or {}, result, False))
+            # policy 抛异常时 action 还是空的 {}，tool 会是 None。
+            # 记成 "error" 而不是 None，否则后面按 tool 分组统计会漏掉这些步。
+            history.append(make_step(step, action.get("tool") or "error",
+                                     action.get("args") or {}, result, False))
 
     if history and history[-1]["tool"] == "finish":
         reason = "right exit"

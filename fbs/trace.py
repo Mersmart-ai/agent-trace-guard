@@ -91,5 +91,8 @@ def check_trace(history):
 
     :return: 缺测试状态的 write_file 步号列表，空列表表示正常
     """
+    from fbs.actions import is_write
+
+    # 不能只看 write_file：bash 用重定向 / mv 也能改文件，那些步同样该有状态
     return [h["step"] for h in history
-            if h["tool"] == "write_file" and h["test_state"] is None]
+            if is_write(h) and h["test_state"] is None]
