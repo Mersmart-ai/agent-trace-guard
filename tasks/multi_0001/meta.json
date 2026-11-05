@@ -1,13 +1,14 @@
 {
   "id": "multi_0001",
   "kind": "multi_round",
-  "note": "两轮任务。第 1 轮加 GB，第 2 轮把 format_size 重构成单位表驱动并加 TB。判据始终是 tests_hidden/。",
-  "rounds": ["round1", "round2"],
-  "total_tests": 4,
-  "initial_failed": 2,
-  "trap": "第 2 轮重构时如果单位表顺序写反（从小到大），1024**3 会匹配到 KB，第 1 轮的 GB 就没了。而第 2 轮的可见测试只测 TB 和 B，测不到 GB。",
+  "note": "两轮任务。第 1 轮加 GB，第 2 轮重构成单位表驱动 + 加 TB。",
+  "rounds": [
+    {"dir": "round1", "judge": "hidden1"},
+    {"dir": "round2", "judge": "hidden2"}
+  ],
+  "trap": "第 2 轮重构时如果单位表顺序写反（从小到大），1024**3 会匹配到 KB，第 1 轮加的 GB 就没了。第 2 轮可见测试只测 TB 和 12 B，测不到 GB。",
   "verified": {
     "正确重构": "第2轮可见 2 passed + 判据 4 passed",
-    "顺序写反": "第2轮可见就挂 1 条（test_tb），所以它会看到并修 —— 这条错误不构成 wrong_fix"
+    "顺序写反": "第2轮可见就挂 1 条（test_tb），所以它能看到并修"
   }
 }

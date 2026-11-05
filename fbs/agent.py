@@ -86,18 +86,26 @@ def main():
                 # 判据始终是 tests_hidden/，模型看不到。
                 history, f_reason = [], "right exit"
                 offset = 0
-                for i, rname in enumerate(rounds, 1):
-                    rdir = task / rname
+                for i, r in enumerate(rounds, 1):
+                    # rounds 的元素可以是字符串（用全局判据），
+                    # 也可以是 {"dir": "round2", "judge": "hidden2"}，
+                    # 后者让每轮用自己的判据——否则第 1 轮会被第 2 轮的测试拖红。
+                    if isinstance(r, str):
+                        rdir, rjudge = task / r, judge_tests
+                    else:
+                        rdir = task / r["dir"]
+                        rjudge = task / r["judge"] if r.get("judge") else judge_tests
+
                     r_md = (rdir / "task.md").read_text(encoding="utf-8")
                     r_policy = model_policy(r_md)
                     h, r_reason = agent_loop(workspace, rdir / "tests", r_policy,
-                                             judge_tests=judge_tests, opts=opts)
+                                             judge_tests=rjudge, opts=opts)
                     # 步号接着上一轮，否则合并后 step 会重复
                     for x in h:
                         x["step"] += offset
                     offset += len(h)
                     history.extend(h)
-                    print(f"   第 {i} 轮（{rname}）：{len(h)} 步  {r_reason}  "
+                    print(f"   第 {i} 轮（{rdir.name}）：{len(h)} 步  {r_reason}  "
                           f"{render(build_states(h))}")
                     if r_reason != "right exit":
                         f_reason = r_reason
