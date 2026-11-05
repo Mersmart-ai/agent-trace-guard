@@ -272,15 +272,19 @@ def run_tests(workspace, tests, python=None, command=None):
         # 因为 runtests.py 需要能 import 到 django 包和测试模块。
         env["PYTHONPATH"] = os.pathsep.join([str(ws), str(ws / "tests")])
         args = [BASH, "-c", command.replace("{python}", py)]
+        run_cwd = str(ws)          # 命令要在工作区里跑
         parse = parse_unittest_failed
     else:
         env["PYTHONPATH"] = str(ws)
+        # tests 是相对项目根的路径，所以这里不能改 cwd，
+        # 一改（比如 cwd=workspace）就变成 workspace/tasks/xxx/tests，找不到。
         args = [py, "-m", "pytest", str(tests), "-q"]
+        run_cwd = None
         parse = parse_failed
 
     try:
         r = subprocess.run(
-            args, cwd=str(ws), env=env,
+            args, **({"cwd": run_cwd} if run_cwd else {}), env=env,
             capture_output=True, text=True, timeout=TIMEOUT_SEC,
             encoding="utf-8", errors="replace",
         )

@@ -25,7 +25,7 @@ def main():
     # 只跑一个任务：填相对路径，比如 "tasks/boltons_0002"
     # 跑全部：改成 None
     # 可以填一个路径、一个路径列表，或者 None（跑全部）
-    ONLY = "tasks/django_16820"
+    ONLY = "tasks/multi_0001"
 
     if isinstance(ONLY, str):
         ONLY = [ONLY]
@@ -40,7 +40,9 @@ def main():
         # 测试不在 tests/ 目录里，靠命令跑，所以 tests/ 可以是空的。
         _mf = task / "meta.json"
         _meta = json.loads(_mf.read_text(encoding="utf-8")) if _mf.exists() else {}
-        _has_cmd = bool(_meta.get("visible_command") or _meta.get("judge_command"))
+        # 有三种情况允许 tests/ 为空：配了命令、配了多轮（测试在 roundN/tests 里）
+        _has_cmd = bool(_meta.get("visible_command") or _meta.get("judge_command")
+                        or _meta.get("rounds"))
         if not _has_cmd and not list((task / "tests").glob("test_*.py")):
             print(f"⚠️  {task.name}: tests/ 里没有 test_*.py，跳过")
             continue
@@ -48,7 +50,10 @@ def main():
         workspace = prepare_workspace(task, Path("runs") / task.name)
         if workspace is None:
             continue
-        task_md = (task / "task.md").read_text(encoding="utf-8")
+        # 多轮任务的说明在 roundN/task.md 里，没有顶层 task.md
+        task_md = ""
+        if (task / "task.md").exists():
+            task_md = (task / "task.md").read_text(encoding="utf-8")
 
         # 方案 A 用 model_policy；方案 B 换成 model_policy_structured
         policy = model_policy(task_md)
@@ -61,6 +66,7 @@ def main():
 
         # meta.json 里可以指定解释器和测试命令（django 这类不用 pytest 的项目）
         opts = {}
+        meta = {}
         meta_file = task / "meta.json"
         if meta_file.exists():
             meta = json.loads(meta_file.read_text(encoding="utf-8"))
@@ -72,9 +78,33 @@ def main():
             if opts:
                 print(f"   自定义测试配置：{sorted(opts)}")
 
+        rounds = meta.get("rounds")   # ["round1", "round2"] 这样的目录名
+
         try:
-            history, f_reason = agent_loop(workspace, task / "tests", policy,
-                                           judge_tests=judge_tests, opts=opts)
+            if rounds:
+                # 多轮：同一个 workspace，每轮换一份任务说明和一套可见测试。
+                # 判据始终是 tests_hidden/，模型看不到。
+                history, f_reason = [], "right exit"
+                offset = 0
+                for i, rname in enumerate(rounds, 1):
+                    rdir = task / rname
+                    r_md = (rdir / "task.md").read_text(encoding="utf-8")
+                    r_policy = model_policy(r_md)
+                    h, r_reason = agent_loop(workspace, rdir / "tests", r_policy,
+                                             judge_tests=judge_tests, opts=opts)
+                    # 步号接着上一轮，否则合并后 step 会重复
+                    for x in h:
+                        x["step"] += offset
+                    offset += len(h)
+                    history.extend(h)
+                    print(f"   第 {i} 轮（{rname}）：{len(h)} 步  {r_reason}  "
+                          f"{render(build_states(h))}")
+                    if r_reason != "right exit":
+                        f_reason = r_reason
+                        break
+            else:
+                history, f_reason = agent_loop(workspace, task / "tests", policy,
+                                               judge_tests=judge_tests, opts=opts)
         except OutOfCredit as e:
             print(f"❌ API 余额不足，停在 {task.name}。")
             print("   已经跑完的任务 trace 是有效的，后面的没有生成。")
