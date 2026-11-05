@@ -9,7 +9,7 @@ from fbs.my_llm import OutOfCredit
 from fbs.tools import bash, grep, list_files, read_file, run_tests, write_file
 from fbs.trace import make_step
 
-MAX_TURNS = 30
+MAX_TURNS = 60
 
 
 def agent_loop(workspace, tests, policy, judge_tests=None, opts=None):
