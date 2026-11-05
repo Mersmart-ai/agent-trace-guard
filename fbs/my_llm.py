@@ -15,30 +15,62 @@ class OutOfCredit(Exception):
     """
 
 
-# 用哪个模型。默认 flash（强）。
-# 想试弱的：设环境变量 FBS_MODEL=deepseek-chat，或者改这一行的默认值。
-# 做对照实验时，同一批任务要用同一个模型，否则说不清是谁的功劳。
-MODEL = os.environ.get("FBS_MODEL", "deepseek-flash")
+# 两个后端，都是 OpenAI 兼容接口，切换只改 base_url 和 key
+BACKENDS = {
+    "deepseek": {
+        "base_url": "https://api.deepseek.com",
+        "env": "DEEPSEEK_API_KEY",
+        "model": "deepseek-flash",
+        "thinking_body": True,      # 支持 extra_body 关思考
+    },
+    "dashscope": {
+        "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "env": "DASHSCOPE_API_KEY",
+        "model": "qwen3.8-flash",
+        "thinking_body": False,
+    },
+}
+
+# 用哪个后端。默认 dashscope（因为现在要测 7B）。
+# 想换回来：FBS_BACKEND=deepseek python run.py
+BACKEND = os.environ.get("FBS_BACKEND", "deepseek")
+
+# 用哪个模型。不给就用后端自己的默认值。
+# 换模型：FBS_MODEL=qwen-plus python run.py
+MODEL = os.environ.get("FBS_MODEL", BACKENDS.get(BACKEND, BACKENDS["deepseek"])["model"])
 
 
-def call_model(messages,tools=None,model=None,thinking_off=False):
-    api_key = os.environ.get("DEEPSEEK_API_KEY")
+def _client():
+    cfg = BACKENDS.get(BACKEND)
+    if cfg is None:
+        raise SystemExit(f"不认识的后端：{BACKEND}，可选：{list(BACKENDS)}")
+    api_key = os.environ.get(cfg["env"])
     if not api_key:
-        raise SystemExit("请先在 .env 里填写 DEEPSEEK_API_KEY")
-    client=OpenAI(api_key=api_key,base_url="https://api.deepseek.com")
-    #发起HTTP请求
+        raise SystemExit(f"请先在 .env 里填写 {cfg['env']}")
+    return OpenAI(api_key=api_key, base_url=cfg["base_url"]), cfg
+
+
+def call_model(messages, tools=None, model=None, thinking_off=False):
+    client, cfg = _client()
     kwargs = dict(model=model or MODEL, messages=messages, temperature=0, tools=tools)
-    if thinking_off:
-        #思考模式下 API 要求把上一轮的 reasoning_content 原样回传，
-        #而 SDK 的 model_dump() 里取不到它，多轮对话就会 400；关掉才能走标准对话
+
+    if thinking_off and cfg["thinking_body"]:
+        # 思考模式下 API 要求把上一轮的 reasoning_content 原样回传，
+        # 而 SDK 的 model_dump() 里取不到它，多轮对话就会 400；关掉才能走标准对话
         kwargs["extra_body"] = {"thinking": {"type": "disabled"}}
+
     try:
-        response=client.chat.completions.create(**kwargs)
+        response = client.chat.completions.create(**kwargs)
     except Exception as e:
-        # 402 / Insufficient Balance 说明是钱的问题，不是能力的问题
-        if getattr(e, "status_code", None) == 402 or "Insufficient Balance" in str(e):
-            raise OutOfCredit(str(e)) from e
+        msg = str(e)
+        # 钱的问题，不是能力的问题
+        if getattr(e, "status_code", None) == 402 or "Insufficient Balance" in msg \
+                or "quota" in msg.lower() or "arrearage" in msg.lower():
+            raise OutOfCredit(msg) from e
         raise
     return response.choices[0].message
+
+
 if __name__ == "__main__":
+    print(f"后端: {BACKEND}   模型: {MODEL}")
     print(call_model([{"role": "user", "content": "只回复 OK"}]).content)

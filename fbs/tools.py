@@ -125,6 +125,29 @@ def parse_failed(output):
     return names
 
 
+def parse_unittest_failed(output):
+    """从 unittest / django runtests.py 的输出里抓失败的测试。
+
+    格式是：
+        FAIL: test_add_index (migrations.test_optimizer.OptimizerTests.test_add_index)
+        ERROR: test_x (module.Class.test_x)
+
+    用括号里的完整路径，因为它唯一——括号前面那个短名字可能重名。
+    """
+    names = []
+    for line in output.splitlines():
+        m = re.match(r"^(?:FAIL|ERROR): (\S+) \((.+)\)\s*$", line)
+        if m:
+            test_name, where = m.group(1), m.group(2)
+            # 两种格式都要处理：
+            #   unittest 默认：test_x (module.Class.test_x)  —— 括号里已含方法名
+            #   django 用的  ：test_x (module.Class)         —— 括号里只有类，得补上
+            if not where.endswith("." + test_name) and where != test_name:
+                where = f"{where}.{test_name}"
+            names.append(where)
+    return names
+
+
 def list_files(workspace):
     root = Path(workspace).resolve()
     out = []
@@ -210,7 +233,7 @@ def grep(workspace, pattern, path="."):
     return "\n".join(hits) if hits else "（没有匹配）"
 
 
-def run_tests(workspace, tests):
+def run_tests(workspace, tests, python=None, command=None):
     """
     此函数用来检验agent修改后的结果是否正确
     :param workspace:agent工作区的路径
@@ -220,13 +243,27 @@ def run_tests(workspace, tests):
     必须带超时：被测代码可能死循环（比如把 n &= n-1 写成 n ^= n-1），
     没有 timeout 的话 subprocess.run 会永久阻塞，整批跑卡死在这里。
     """
+    ws = Path(workspace).resolve()
     env = dict(os.environ)
-    env["PYTHONPATH"] = str(Path(workspace).resolve())
+    py = python or sys.executable
+
+    if command:
+        # 自定义命令：给 django 的 tests/runtests.py 这类非 pytest 的入口用。
+        # 同时把 workspace 和 workspace/tests 都加进 PYTHONPATH，
+        # 因为 runtests.py 需要能 import 到 django 包和测试模块。
+        env["PYTHONPATH"] = os.pathsep.join([str(ws), str(ws / "tests")])
+        args = [BASH, "-c", command.replace("{python}", py)]
+        parse = parse_unittest_failed
+    else:
+        env["PYTHONPATH"] = str(ws)
+        args = [py, "-m", "pytest", str(tests), "-q"]
+        parse = parse_failed
+
     try:
-        r = subprocess.run(  # 启动另一个进程跑 pytest
-            [sys.executable, "-m", "pytest", str(tests), "-q"],
-            env=env, capture_output=True, text=True,
-            timeout=TIMEOUT_SEC,
+        r = subprocess.run(
+            args, cwd=str(ws), env=env,
+            capture_output=True, text=True, timeout=TIMEOUT_SEC,
+            encoding="utf-8", errors="replace",
         )
     except subprocess.TimeoutExpired:
         return {"exit_code": -1, "failed_tests": ["<timeout>"]}
@@ -235,5 +272,6 @@ def run_tests(workspace, tests):
     #     >  assert list(strutils.iter_splitlines(text)) == ['', 'first', ...]
     # 函数名、调用方式、期望值全在里面，等于把答案直接给模型。
     # 真实场景里报 bug 的用户只会说"结果不对"，不会给你测试源码。
+    # unittest 把失败信息写到 stderr，pytest 写在 stdout，合起来解析最稳
     return {"exit_code": r.returncode,
-            "failed_tests": parse_failed(r.stdout)}
+            "failed_tests": parse(r.stdout + r.stderr)}

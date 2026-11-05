@@ -11,6 +11,7 @@
 跑法：python -m fbs.agent   （或根目录的 run.py）
 注意要在项目根目录下运行，tasks/ runs/ run_traces/ 都是相对路径。
 """
+import json
 from pathlib import Path
 
 from fbs.locate import build_states, locate, render
@@ -24,7 +25,7 @@ def main():
     # 只跑一个任务：填相对路径，比如 "tasks/boltons_0002"
     # 跑全部：改成 None
     # 可以填一个路径、一个路径列表，或者 None（跑全部）
-    ONLY = "tasks/couple_0001"
+    ONLY = "tasks/django_16820"
 
     if isinstance(ONLY, str):
         ONLY = [ONLY]
@@ -53,9 +54,22 @@ def main():
         if judge_tests:
             print(f"   隐藏测试已启用：{len(list(hidden.glob('test_*.py')))} 个文件")
 
+        # meta.json 里可以指定解释器和测试命令（django 这类不用 pytest 的项目）
+        opts = {}
+        meta_file = task / "meta.json"
+        if meta_file.exists():
+            meta = json.loads(meta_file.read_text(encoding="utf-8"))
+            for k in ("python", "visible_command", "judge_command"):
+                if meta.get(k):
+                    opts[k] = meta[k]
+            if opts.get("judge_command"):
+                judge_tests = None      # 用命令判据，就不用目录了
+            if opts:
+                print(f"   自定义测试配置：{sorted(opts)}")
+
         try:
             history, f_reason = agent_loop(workspace, task / "tests", policy,
-                                           judge_tests=judge_tests)
+                                           judge_tests=judge_tests, opts=opts)
         except OutOfCredit as e:
             print(f"❌ API 余额不足，停在 {task.name}。")
             print("   已经跑完的任务 trace 是有效的，后面的没有生成。")

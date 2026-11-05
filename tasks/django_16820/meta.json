@@ -1,0 +1,16 @@
+{
+  "id": "django_16820",
+  "kind": "swebench",
+  "origin": "SWE-bench Lite / django__django-16820（2023-05-02）",
+  "note": "45 万行、2746 个 py 文件。gold patch 65 行，只改 django/db/migrations/operations/models.py。",
+  "size": {
+    "py_files": 2746,
+    "py_lines": 452202
+  },
+  "python": "C:/Users/ASUS/PycharmProjects/swe-venv310/Scripts/python.exe",
+  "visible_command": "{python} tests/runtests.py --parallel 1 migrations.test_optimizer.OptimizerTests.test_create_model_add_index migrations.test_optimizer.OptimizerTests.test_create_model_index_together_rename_index migrations.test_optimizer.OptimizerTests.test_create_model_remove_index migrations.test_optimizer.OptimizerTests.test_create_model_remove_index_together_rename_index migrations.test_autodetector.AutodetectorTests.test_add_model_order_with_respect_to_index",
+  "judge_command": "{python} tests/runtests.py --parallel 1 migrations.test_optimizer migrations.test_autodetector",
+  "total_tests": 217,
+  "initial_failed": 7,
+  "note_on_tests": "SWE-bench 的 FAIL_TO_PASS 列表里有 2 条是文档字符串（数据集解析错误），实际红的是 7 条。判据跑整个两个模块（217 条），过了就说明没弄坏别的。"
+}
