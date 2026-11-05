@@ -25,7 +25,7 @@ def main():
     # 只跑一个任务：填相对路径，比如 "tasks/boltons_0002"
     # 跑全部：改成 None
     # 可以填一个路径、一个路径列表，或者 None（跑全部）
-    ONLY = ["tasks/term_0010", "tasks/term_0011", "tasks/term_0012"]
+    ONLY = ["tasks/amb_rename_vague", "tasks/amb_rename_clear", "tasks/amb_merge_vague", "tasks/amb_merge_clear", "tasks/amb_clean_vague", "tasks/amb_clean_clear"]
 
     if isinstance(ONLY, str):
         ONLY = [ONLY]

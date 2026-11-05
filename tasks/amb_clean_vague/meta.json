@@ -1,0 +1,8 @@
+{
+  "id": "amb_clean_vague",
+  "kind": "ambiguous",
+  "pair": "amb_clean",
+  "variant": "vague",
+  "total_tests": 2,
+  "initial_failed": 2
+}

@@ -1,0 +1,8 @@
+{
+  "id": "amb_clean_clear",
+  "kind": "ambiguous",
+  "pair": "amb_clean",
+  "variant": "clear",
+  "total_tests": 2,
+  "initial_failed": 2
+}

@@ -1,0 +1,8 @@
+{
+  "id": "amb_merge_vague",
+  "kind": "ambiguous",
+  "pair": "amb_merge",
+  "variant": "vague",
+  "total_tests": 4,
+  "initial_failed": 4
+}
