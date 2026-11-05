@@ -37,7 +37,7 @@ BACKEND = os.environ.get("FBS_BACKEND", "deepseek")
 
 # 用哪个模型。不给就用后端自己的默认值。
 # 换模型：FBS_MODEL=qwen-plus python run.py
-MODEL = os.environ.get("FBS_MODEL", BACKENDS.get(BACKEND, BACKENDS["deepseek"])["model"])
+MODEL = os.environ.get("FBS_MODEL", "deepseek-chat")
 
 
 def _client():

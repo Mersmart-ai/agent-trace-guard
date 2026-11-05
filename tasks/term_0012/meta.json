@@ -1,0 +1,8 @@
+{
+  "id": "term_0012",
+  "kind": "terminal",
+  "origin": "自造（中等难度终端任务）",
+  "note": "只看内容（JSON/CSV/纯文本），扩展名都是 .dat",
+  "total_tests": 4,
+  "initial_failed": 4
+}

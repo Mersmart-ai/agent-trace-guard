@@ -1,0 +1,8 @@
+{
+  "id": "term_0010",
+  "kind": "terminal",
+  "origin": "自造（中等难度终端任务）",
+  "note": "文件名有空格和中文，按扩展名分类",
+  "total_tests": 6,
+  "initial_failed": 6
+}

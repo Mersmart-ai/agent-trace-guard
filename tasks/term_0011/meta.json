@@ -1,0 +1,8 @@
+{
+  "id": "term_0011",
+  "kind": "terminal",
+  "origin": "自造（中等难度终端任务）",
+  "note": "两个目录同名文件合并，不能覆盖",
+  "total_tests": 2,
+  "initial_failed": 2
+}
