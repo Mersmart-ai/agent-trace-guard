@@ -36,7 +36,12 @@ def main():
             continue
         # 没有测试文件的 task 是"题目配错了"，不该产出一条 trace。
         # 让脏数据进 trace，比不跑更糟——以后分析时会把"没测"当成"通过了"。
-        if not list((task / "tests").glob("test_*.py")):
+        # 例外：meta.json 配了 visible_command / judge_command 的（比如 django），
+        # 测试不在 tests/ 目录里，靠命令跑，所以 tests/ 可以是空的。
+        _mf = task / "meta.json"
+        _meta = json.loads(_mf.read_text(encoding="utf-8")) if _mf.exists() else {}
+        _has_cmd = bool(_meta.get("visible_command") or _meta.get("judge_command"))
+        if not _has_cmd and not list((task / "tests").glob("test_*.py")):
             print(f"⚠️  {task.name}: tests/ 里没有 test_*.py，跳过")
             continue
 
