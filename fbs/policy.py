@@ -86,6 +86,31 @@ TOOLS = [
 ]
 
 
+HISTORY_KEEP_FULL = 8       # 最近 8 步保留完整结果
+HISTORY_MAX_CHARS = 800     # 更早的步骤，结果截到 800 字符
+
+
+def _compact(visible):
+    """压缩历史：只保留最近几步的完整结果，早的截断。
+
+    不压缩的代价是平方级的：第 N 步要重发前面所有结果，
+    一步 27k token 的文件列表乘 60 步，就是几块钱一次。
+    """
+    n = len(visible)
+    out = []
+    for i, h in enumerate(visible):
+        if i >= n - HISTORY_KEEP_FULL:
+            out.append(h)
+            continue
+        h2 = dict(h)
+        r = h2.get("result")
+        s = r if isinstance(r, str) else json.dumps(r, ensure_ascii=False)
+        if len(s) > HISTORY_MAX_CHARS:
+            h2["result"] = s[:HISTORY_MAX_CHARS] + f"...（共 {len(s)} 字符，已截断）"
+        out.append(h2)
+    return out
+
+
 def model_policy(task_md):
     """方案 A：每轮把 history 拼成一段文字，塞进 user 消息里。"""
     def fn_inner(step, history):
@@ -98,6 +123,7 @@ def model_policy(task_md):
             h2 = dict(h)                    # 复制一份，别动原对象
             h2.pop("test_state", None)      # 删掉这个键；不存在也不报错
             visible.append(h2)
+        visible = _compact(visible)         # 老步骤的结果截断，否则越跑越贵
         history_text = json.dumps(visible, ensure_ascii=False)
 
         messages = [

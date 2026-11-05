@@ -148,19 +148,38 @@ def parse_unittest_failed(output):
     return names
 
 
+LIST_FILES_LIMIT = 200
+
+
 def list_files(workspace):
+    """列出工作区里的 .py 文件，最多 LIST_FILES_LIMIT 条。
+
+    必须有上限：django 有 2746 个 py 文件，全列出来是 27k token，
+    而且每一步都跟着 history 重发一遍——60 步就是 160 万 token，几块钱。
+    真实工具（Cursor 的 glob、grep）都有 limit，这里也一样。
+
+    超了就在最后加一行，告诉模型"还有多少个没显示、换 grep 更省"。
+    """
     root = Path(workspace).resolve()
-    out = []
+    all_files = []
     for f in sorted(root.rglob("*")):
-        if not f.is_file():  # f是不是一个文件
+        if not f.is_file():
             continue
-        # __pycache__ 是 Python 自动生成的字节码缓存目录。
         if "__pycache__" in f.parts:
             continue
-        if f.suffix != ".py":  # 只列 .py
+        if f.suffix != ".py":
             continue
-        out.append(f.relative_to(root).as_posix())
-    return out
+        all_files.append(f.relative_to(root).as_posix())
+
+    if len(all_files) <= LIST_FILES_LIMIT:
+        return all_files
+
+    shown = all_files[:LIST_FILES_LIMIT]
+    shown.append(
+        f"...（共 {len(all_files)} 个 .py 文件，只列了前 {LIST_FILES_LIMIT} 个。"
+        f"找具体内容请用 grep，别靠这个列表）"
+    )
+    return shown
 
 
 def read_file(workspace, path):
