@@ -12,15 +12,18 @@ from fbs.trace import make_step
 MAX_TURNS = 30
 
 
-def agent_loop(workspace, tests, policy):
+def agent_loop(workspace, tests, policy, judge_tests=None):
     """
     agent 的循环核心
 
     :param workspace:agent 的工作区路径
-    :param tests:pytest 测试路径，agent 看不到
+    :param tests:模型能看到的测试目录（它调 run_tests 时跑这个）
     :param policy:决定下一步动作的函数
+    :param judge_tests:判据用的目录。None 表示和 tests 是同一套。
+                       模型永远看不到这个目录的结果——这是"隐藏测试"的入口。
     :return:(history, reason)
     """
+    judge_dir = judge_tests or tests
     history = []
     for step in range(1, MAX_TURNS + 1):
         action = {}     # policy 接不住异常时，保证后面有值可用
@@ -40,18 +43,26 @@ def agent_loop(workspace, tests, policy):
                               action["args"].get("pattern", ""),
                               action["args"].get("path", "."))
             elif action["tool"] == "bash":
-                # bash 的退出码只说明"这条命令成没成"，不代表测试状态，
-                # 所以 test_state 保持 None，不当成一次判分。
                 result = bash(workspace, action["args"].get("command", ""))
+                # bash 会改文件系统（mv / rm / cp / touch），所以也要判分。
+                # 不加这一条的话，终端任务的 trace 每隔十几步才有一个 test_state，
+                # 根本看不出"哪一步把东西弄坏了"。
+                # 代价：只读命令（ls / cat）也白跑一次测试，0.1 秒，可以接受。
+                test_state = judge_state(run_tests(workspace, judge_dir))
             elif action["tool"] == "write_file":
                 result = write_file(workspace, action["args"]["path"], action["args"]["content"])
                 # 强制判分：写完由循环自动测一次，状态记在这一步上。
                 # 注意 result 仍然是"写入成功"——模型看不到这次测试的结果，
                 # 这样它自己调 run_tests 的记录还留着，可以统计"它有没有主动验证"。
-                test_state = judge_state(run_tests(workspace, tests))
+                test_state = judge_state(run_tests(workspace, judge_dir))
             elif action["tool"] == "run_tests":
+                # 两套测试分开：模型看到的（tests）和记进 trace 的（judge_dir）。
+                # 没配隐藏测试时两者相同，只跑一次。
                 result = run_tests(workspace, tests)
-                test_state = judge_state(result)
+                if judge_tests:
+                    test_state = judge_state(run_tests(workspace, judge_dir))
+                else:
+                    test_state = judge_state(result)
             else:
                 result = f"【错误】：未知工具{action['tool']}"
 

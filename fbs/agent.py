@@ -24,7 +24,7 @@ def main():
     # 只跑一个任务：填相对路径，比如 "tasks/boltons_0002"
     # 跑全部：改成 None
     # 可以填一个路径、一个路径列表，或者 None（跑全部）
-    ONLY = ["tasks/term_0001", "tasks/term_0002", "tasks/term_0003"]
+    ONLY = "tasks/req_0001"
 
     if isinstance(ONLY, str):
         ONLY = [ONLY]
@@ -47,8 +47,15 @@ def main():
         # 方案 A 用 model_policy；方案 B 换成 model_policy_structured
         policy = model_policy(task_md)
 
+        # 有 tests_hidden/ 就用它当判据，没有就用 tests/
+        hidden = task / "tests_hidden"
+        judge_tests = hidden if hidden.is_dir() else None
+        if judge_tests:
+            print(f"   隐藏测试已启用：{len(list(hidden.glob('test_*.py')))} 个文件")
+
         try:
-            history, f_reason = agent_loop(workspace, task / "tests", policy)
+            history, f_reason = agent_loop(workspace, task / "tests", policy,
+                                           judge_tests=judge_tests)
         except OutOfCredit as e:
             print(f"❌ API 余额不足，停在 {task.name}。")
             print("   已经跑完的任务 trace 是有效的，后面的没有生成。")

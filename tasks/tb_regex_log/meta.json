@@ -1,0 +1,8 @@
+{
+  "id": "tb_regex_log",
+  "kind": "terminal",
+  "origin": "Terminal-Bench 2.1 / regex-log",
+  "note": "写一个正则：匹配含合法 IPv4 的行里的最后一个合法日期。难点在日期合法性、IPv4 范围、取最后一个、边界字符。",
+  "total_tests": 1,
+  "initial_failed": 1
+}

@@ -4,5 +4,8 @@
   "structure": "multi_module",
   "note": "18 个模块 5629 行。bug 在 utils.py 的 _parse_content_type_header，修复重写了参数解析循环。",
   "total_tests": 220,
-  "initial_failed": 5
+  "initial_failed": 5,
+  "hidden_tests": true,
+  "visible_scope": "test_content_type_parsing + test_get_encoding_from_headers 两个函数的全部用例（13 条，5 红 8 绿）",
+  "hidden_scope": "tests_hidden/ 的完整 220 条，模型看不到。其中 206 条是原本绿的 PASS_TO_PASS。"
 }

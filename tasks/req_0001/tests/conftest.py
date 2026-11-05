@@ -56,3 +56,16 @@ def nosan_server(tmp_path_factory):
 
     server.shutdown()
     server_thread.join()
+
+
+# ===== 隐藏测试的入口 =====
+# 模型调 run_tests 时只跑这两条相关测试（含它们的全部参数组合）。
+# tests_hidden/ 里是完整的一套，只有 harness 的判据会跑，模型看不到。
+_VISIBLE = {
+    "test_content_type_parsing",
+    "test_get_encoding_from_headers",
+}
+
+
+def pytest_collection_modifyitems(config, items):
+    items[:] = [i for i in items if i.originalname in _VISIBLE]

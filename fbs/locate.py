@@ -80,3 +80,34 @@ def locate(states):
             prev_in = cur_in
 
     return result
+
+
+def regressions(states):
+    """找所有「本来没红、这一步变红」的位置。
+
+    和 locate 的区别：
+        locate       只看最终状态。最终全绿就返回 {}，中间翻车一概不管。
+        regressions  看过程。只要某条测试从「不在名单里」变成「在名单里」，
+                     就记一步——不管它后来修没修好。
+
+    为什么要这个：agent 会反复改，通常最后能改到全绿。
+    这时候 locate 永远是 {}，但它过程中可能把原本好的东西弄坏了又修回来。
+    那种「弄坏了又修好」的代价，只有 regressions 看得到。
+
+    :return: {步号: [测试名, ...]}，只记新变红的那些
+    """
+    out = {}
+    prev = None      # 上一步的失败集合；None 表示还没测过
+    for i, s in enumerate(states, 1):
+        if s is None:
+            continue
+        cur = set(s)
+        if prev is None:
+            # 第一次测到，当作基线。基线本身就是红的，不算这次弄坏的。
+            prev = cur
+            continue
+        new_red = cur - prev        # 这一步新变红的
+        if new_red:
+            out[i] = sorted(new_red)
+        prev = cur
+    return out
