@@ -1,7 +1,7 @@
 """locate 的测试。全部用硬编码数据，不碰 API、不跑真实任务。"""
 import pytest
 
-from fbs.locate import build_states, locate, render
+from fbs.legacy.locate import build_states, locate, render
 
 
 # ---------- build_states ----------

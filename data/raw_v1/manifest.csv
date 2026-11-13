@@ -1,0 +1,81 @@
+path,sha256,bytes,task,run_id,ts,reason,steps,final_test_state
+run_traces/amb_clean_clear/r01.json,459bcaffa80d7d1d38d9574f9c8d78f072ef99761d1e576d5e72b0298cbb5cbd,39626,amb_clean_clear,amb_clean_clear_r01,2026-11-05T18:37:09,Hit max_turns,60,[]
+run_traces/amb_clean_clear/r02.json,eb2b5f7f414d4cd0642f0a2a833a0b46a1fa30be28f0b462e01934d6e25f8c7d,38134,amb_clean_clear,amb_clean_clear_r02,2026-11-05T18:46:04,Hit max_turns,60,"[""test_only_keep""]"
+run_traces/amb_clean_clear/r03.json,d35a36c9a3855eeaacdc75f8ad9edd878442d9f5cc4244cc4c15c9e05e0257eb,16030,amb_clean_clear,amb_clean_clear_r03,2026-11-05T18:53:49,Hit max_turns,60,"[""<pytest_no_case>""]"
+run_traces/amb_clean_vague/r01.json,f748444791c3bb863014d134dfa707a7b6e329bb9a369c922ae041234184def4,33779,amb_clean_vague,amb_clean_vague_r01,2026-11-05T18:35:16,Hit max_turns,60,"[""test_only_keep""]"
+run_traces/amb_clean_vague/r02.json,6e1592de0affe3b5276a45799c4b7d31c4cdf15756035724b1d789c68ef8f4a1,36387,amb_clean_vague,amb_clean_vague_r02,2026-11-05T18:44:05,Hit max_turns,60,"[""test_only_keep""]"
+run_traces/amb_clean_vague/r03.json,a633e206f370b91ca44a8c97649a2b6cc68ea7e8f7e325c43c885a28230fca63,12315,amb_clean_vague,amb_clean_vague_r03,2026-11-05T18:52:32,Hit max_turns,60,null
+run_traces/amb_merge_clear/r01.json,d7c56c40f198e73a0d3ce4c91033009a36d844cc620006720002d9cce87890d3,3247,amb_merge_clear,amb_merge_clear_r01,2026-11-05T18:33:21,right exit,7,null
+run_traces/amb_merge_clear/r02.json,e9e385903f9570b604145b3d14846674ddfdbefe2a10abc271efe2a16bd12743,3564,amb_merge_clear,amb_merge_clear_r02,2026-11-05T18:42:10,right exit,8,null
+run_traces/amb_merge_clear/r03.json,ea0ed125851879858b5f309e099eadd3ebb03936a84535fa3867d92b951bc685,12907,amb_merge_clear,amb_merge_clear_r03,2026-11-05T18:51:20,Hit max_turns,60,null
+run_traces/amb_merge_vague/r01.json,d2df87be0d3493073baa1da116b8982c5dd0391218b19b7dfcb27a50e79b690a,41369,amb_merge_vague,amb_merge_vague_r01,2026-11-05T18:33:09,Hit max_turns,60,"[""test_names"", ""test_content""]"
+run_traces/amb_merge_vague/r02.json,9db860e145d7bf9efa652071255ff947cbeaa299487bcba24229b5929cdd8bef,53720,amb_merge_vague,amb_merge_vague_r02,2026-11-05T18:41:56,Hit max_turns,60,"[""test_names"", ""test_content""]"
+run_traces/amb_merge_vague/r03.json,16ec11320f4d4a5a2e738aab4ef4a45e3108dbeb95dea6f88ac6ec8edc2e85de,13924,amb_merge_vague,amb_merge_vague_r03,2026-11-05T18:50:13,Hit max_turns,60,null
+run_traces/amb_rename_clear/r01.json,658a78fc8e4c49fdd1d302788e86eadd568dfb4b42bbebecf20a7feca73a8280,3609,amb_rename_clear,amb_rename_clear_r01,2026-11-05T18:30:47,right exit,8,null
+run_traces/amb_rename_clear/r02.json,46488ebd8d421f82efe7e2a448167586acbefb5d5fc7db696243aba61d8e2a51,3224,amb_rename_clear,amb_rename_clear_r02,2026-11-05T18:39:37,right exit,7,null
+run_traces/amb_rename_clear/r03.json,e14913ae4130df60128e744cb079ae67964886afcad02f246100bd180a67054e,14351,amb_rename_clear,amb_rename_clear_r03,2026-11-05T18:49:07,Hit max_turns,60,null
+run_traces/amb_rename_vague/r01.json,a3d211aa798d26b61d5522c91514313057385c23a5c3f49457caa52e6606dcc1,38748,amb_rename_vague,amb_rename_vague_r01,2026-11-05T18:30:33,Hit max_turns,60,"[""test_prefix"", ""test_content""]"
+run_traces/amb_rename_vague/r02.json,fce05a8ca296ccd44974a8fff1598af74ad0c5e84cd35df5715bd0d70ed4c138,39671,amb_rename_vague,amb_rename_vague_r02,2026-11-05T18:39:26,Hit max_turns,60,"[""test_prefix"", ""test_content""]"
+run_traces/amb_rename_vague/r03.json,2994532fb68b5669265ccaa814e5c46f458b5be1b73c55968e83dab595ed564c,36893,amb_rename_vague,amb_rename_vague_r03,2026-11-05T18:48:01,Hit max_turns,60,"[""<pytest_no_case>""]"
+run_traces/boltons_0001/r01.json,bad981e9e37d929d3b6ecaa447061aca473ba2fda067fc4a3df35b800695c980,104676,boltons_0001,boltons_0001_r01,2026-11-04T09:17:03,right exit,6,null
+run_traces/boltons_0001/r02.json,5173009616b08ea6a5780086ac3adf86453c19471dc00da58d076aee084c336a,104921,boltons_0001,boltons_0001_r02,2026-11-04T09:21:24,right exit,6,null
+run_traces/boltons_0001/r03.json,5b3d68076df9255c2541b705b8e1d301776619cddeada0b580854947dc44c4c9,127691,boltons_0001,boltons_0001_r03,2026-11-04T09:32:39,right exit,7,null
+run_traces/boltons_0001/r04.json,0eeb03585439e67f465e243ff295aadd6643c9171d39c10925addec7ddc0c3ab,185664,boltons_0001,boltons_0001_r04,2026-11-04T09:52:29,right exit,8,null
+run_traces/boltons_0002/r01.json,b04e82747efa3430c562bfea0afdbc6fd212e4188a82a54f9492210f50ef7077,80066,boltons_0002,boltons_0002_r01,2026-11-04T10:09:02,right exit,5,null
+run_traces/contradictory/r01.json,6d7d5fec9b93498e7850c57588aef3568968e9905e419df26502ea5ecb934366,18263,contradictory,contradictory_r01,2026-11-04T08:39:40,Hit max_turns,30,"[""test_wants_4"", ""test_wants_5""]"
+run_traces/couple_0001/r01.json,f3a355f6bc8d42f92dd8613ecc976e3d91171a983aa8d85ff1a014b4059406ce,4785,couple_0001,couple_0001_r01,2026-11-05T10:20:42,right exit,9,null
+run_traces/couple_0001/r02.json,67137ee2c2f499c2818be8a7babc2b12b33c52dd2d73c50a0b29abb3e655107d,4447,couple_0001,couple_0001_r02,2026-11-05T10:22:56,right exit,8,null
+run_traces/couple_0001/r03.json,f93d197eaa407d7f9c00bdb8cb9a544844a543c8fbef38d08218722c70074a24,5796,couple_0001,couple_0001_r03,2026-11-05T14:20:41,right exit,11,null
+run_traces/django_16820/r01.json,c20e2d087a8051f224d5ef419c7de66ff1cb2fc4ddeda6f00b40486da2985524,349863,django_16820,django_16820_r01,2026-11-05T14:51:02,Hit max_turns,30,"[""migrations.test_autodetector.AutodetectorTests.test_add_model_order_with_respect_to_index"", ""migrations.test_autodetector.AutodetectorTests.test_create_model_with_indexes"", ""migrations.test_autodetector.AutodetectorTests.test_same_app_circular_fk_dependency_with_unique_together_and_indexes"", ""migrations.test_optimizer.OptimizerTests.test_create_model_add_index"", ""migrations.test_optimizer.OptimizerTests.test_create_model_index_together_rename_index"", ""migrations.test_optimizer.OptimizerTests.test_create_model_remove_index"", ""migrations.test_optimizer.OptimizerTests.test_create_model_remove_index_together_rename_index""]"
+run_traces/django_16820/r02.json,8f5a45b0ba0e42ee7ac0a9e5b3ce4db760fa4635f952d8b58707d4b566b86fcd,395301,django_16820,django_16820_r02,2026-11-05T15:32:32,Hit max_turns,60,"[""migrations.test_autodetector.AutodetectorTests.test_add_model_order_with_respect_to_index"", ""migrations.test_autodetector.AutodetectorTests.test_create_model_with_indexes"", ""migrations.test_autodetector.AutodetectorTests.test_same_app_circular_fk_dependency_with_unique_together_and_indexes"", ""migrations.test_optimizer.OptimizerTests.test_create_model_add_index"", ""migrations.test_optimizer.OptimizerTests.test_create_model_index_together_rename_index"", ""migrations.test_optimizer.OptimizerTests.test_create_model_remove_index"", ""migrations.test_optimizer.OptimizerTests.test_create_model_remove_index_together_rename_index""]"
+run_traces/multi_0001/r01.json,aad6e97cb1fa7dd30eac3a4206b1e15d9d5ba1fb891f3134124c40f888481e4c,7721,multi_0001,multi_0001_r01,2026-11-05T16:54:23,right exit,17,null
+run_traces/req_0001/r01.json,254370e32220e3f661fa0e1a262b3009b47131e8a60d51ca3d2817b0dc8d18b4,72325,req_0001,req_0001_r01,2026-11-04T12:26:58,right exit,7,null
+run_traces/req_0001/r02.json,a4d0065904aafdc32c82960b246b862bce6774dedf3f33b35c4184ff7d967dd7,71667,req_0001,req_0001_r02,2026-11-04T16:31:01,right exit,6,null
+run_traces/req_0001/r03.json,70d5aa677e665aaabdd5a76f03241e3c0d704be5a2ed88847d1398dd596b9a80,50028,req_0001,req_0001_r03,2026-11-05T10:11:58,right exit,14,null
+run_traces/req_0002/r01.json,258e052a5e6486f656b97afc9b88def251dc7e885506759339a033d3cabafa88,80427,req_0002,req_0002_r01,2026-11-04T16:38:30,right exit,6,null
+run_traces/req_0003/r01.json,aa9e066e79dfd55dcc50bab2c0b58b18e0aeea39e947596b8819ef0011696f47,108205,req_0003,req_0003_r01,2026-11-04T16:48:26,right exit,9,null
+run_traces/task_0001/r01.json,fd95368481e988b72e36cb2be1b8c431cf12dabc85896e48daa294741e2df755,1483,task_0001,task_0001_r01,2026-11-03T22:15:14,right exit,5,null
+run_traces/task_0002/r01.json,506d07991178759fbc566728dbac808de5667e2027b201c3c5ee074eff7e431d,1545,task_0002,task_0002_r01,2026-11-03T22:15:21,right exit,5,null
+run_traces/task_0003/r01.json,84faa11370a4aaf9dbddb02c10d8499cbea7080be0a13f774c528d56cb64475b,1399,task_0003,task_0003_r01,2026-11-03T22:15:28,right exit,5,null
+run_traces/task_0004/r01.json,96072038668270a85acc4ae7bccc8faa62fbedc353c5e6b21d2556e38575862f,2126,task_0004,task_0004_r01,2026-11-03T22:15:38,right exit,7,null
+run_traces/task_0005/r01.json,5d4c96d15c2fb871fb68551b6896915b50f8b612640382258507028482362021,2392,task_0005,task_0005_r01,2026-11-03T22:15:50,right exit,8,null
+run_traces/task_0006/r01.json,b92aaf6b3b010f0bd7b5bc49ca9638c8d94f0a1f449e0a7b9d4cf1ae48c04fc7,2731,task_0006,task_0006_r01,2026-11-03T22:16:03,right exit,9,null
+run_traces/task_0007/r01.json,2f9bfe926839e3e6bd254a71ccae6a855356c82b13733a53a2517909d91817f5,2686,task_0007,task_0007_r01,2026-11-03T22:16:14,right exit,8,null
+run_traces/task_0008/r01.json,cb184e4ec5084f417d32dc358f2401e9aa6a36db8cc3a18fb92c32cef416a959,2377,task_0008,task_0008_r01,2026-11-03T22:16:23,right exit,6,null
+run_traces/task_0009/r01.json,07b4d65268b052ca59e22ba322848e1e4d9889875a6fcae899890fdf70a9aeea,2204,task_0009,task_0009_r01,2026-11-03T22:16:30,right exit,5,null
+run_traces/task_0010/r01.json,eb884c53f6a6bf7558a97ab7287363f518c9e2e3461d1141f9247fea9edb3e8f,2471,task_0010,task_0010_r01,2026-11-03T22:16:43,right exit,5,null
+run_traces/task_0011/r01.json,c52ccb0d1032533f9edbee357aea017c6d6aefa983bfa6fbcd6f1e2db6813457,2465,task_0011,task_0011_r01,2026-11-03T22:16:51,right exit,5,null
+run_traces/task_0012/r01.json,e7b7106fe29da617025b8f9229b40bf8d2a8887690d6fea99bc9aff7a20cfed5,2471,task_0012,task_0012_r01,2026-11-03T22:16:58,right exit,6,null
+run_traces/task_0013/r01.json,53e6e0a22a02351c8d6eb9ca1c07ae5f37cf3df7a74a6764d4a44863e807963c,1952,task_0013,task_0013_r01,2026-11-03T22:17:07,right exit,5,null
+run_traces/task_0014/r01.json,6d112bbff56aa562ce731929089f5b030ba8d076cc39afdccc65eeb69d302d25,2334,task_0014,task_0014_r01,2026-11-03T22:17:13,right exit,5,null
+run_traces/task_0015/r01.json,39a75f646e96ccd1d39fa105c3cfd2f9254e34a0dc8f194b29c0a94a73cd419f,3569,task_0015,task_0015_r01,2026-11-03T22:17:21,right exit,5,null
+run_traces/task_0016/r01.json,00bf47bc4eaae162f404feec3484934960d29725dd5305b0a9c8a3371ee69143,3207,task_0016,task_0016_r01,2026-11-03T22:17:28,right exit,6,null
+run_traces/task_0017/r01.json,59a9a70bdcb0f83b46c43ac99bb1282c7f20dc6b0b071070b2b27eb4c2bae383,3156,task_0017,task_0017_r01,2026-11-03T22:17:45,right exit,5,null
+run_traces/task_0018/r01.json,651edc05e6f099baaf237f4165a510e1700b20eda1dae944f041b06943ad05ba,2375,task_0018,task_0018_r01,2026-11-03T22:17:53,right exit,5,null
+run_traces/task_0019/r01.json,b92315b76c5e740b44d0d5c3dd5357969b4d9a70e39d78036e66ba7206f2035b,2347,task_0019,task_0019_r01,2026-11-03T22:18:01,right exit,5,null
+run_traces/task_0020/r01.json,5ea9f4a203c3ae7998cf0cd849bf7724dbfc7fa4749582d9f89f50d7c221d737,2637,task_0020,task_0020_r01,2026-11-03T22:18:17,right exit,5,null
+run_traces/task_0021/r01.json,0924b6aa10490ca949362aa23c2034403b30d5e5344c334519caf00cdb530835,3082,task_0021,task_0021_r01,2026-11-03T22:18:24,right exit,5,null
+run_traces/task_0022/r01.json,12abec650f965493cc5c45241afaabe0bbf80884a12e8e18c94d5168cb0cbc7d,2344,task_0022,task_0022_r01,2026-11-03T22:18:34,right exit,5,null
+run_traces/task_0023/r01.json,f83006c0b6dcde6bd89a536c7386f6c49c2571d2ab2f9ea10c15b9d4f82fcfd9,3624,task_0023,task_0023_r01,2026-11-03T22:18:47,right exit,6,null
+run_traces/task_0024/r01.json,0bf95e220d7d4d0d541acad81d7bb5260c4aa5a3a034a7404ea70b44dc392e14,4613,task_0024,task_0024_r01,2026-11-03T22:21:02,right exit,7,null
+run_traces/task_0025/r01.json,af832ea4f9c823296fbd4b4307120a799479785861dc7d226eab939934515eb5,2689,task_0025,task_0025_r01,2026-11-03T22:21:09,right exit,5,null
+run_traces/task_0026/r01.json,9e15a892a5e54e13476cf5573aa554f18c691b18b0dc42f7c18e051e6943063f,2429,task_0026,task_0026_r01,2026-11-03T22:21:18,right exit,5,null
+run_traces/task_0027/r01.json,098adef78678c43b4a5a0b86946b11d6496f87de9ba5f3393a5f7ddfa4f6712a,2988,task_0027,task_0027_r01,2026-11-03T22:21:27,right exit,5,null
+run_traces/task_0028/r01.json,83b50e139354ab316805631141c3172a8a0709f9ec29e370b975cbc82b09fa6b,2530,task_0028,task_0028_r01,2026-11-03T22:21:35,right exit,5,null
+run_traces/task_0029/r01.json,b977482ca2bb6dc733610a57e7d71635b4e1e59238d38ab3bf2d53c06f9bb592,1979,task_0029,task_0029_r01,2026-11-03T22:21:42,right exit,5,null
+run_traces/task_0030/r01.json,da7035c4828fbd032f2de2540861161eb08dc69d626d00e346ceea5fbd4e75de,4166,task_0030,task_0030_r01,2026-11-03T22:21:51,right exit,6,null
+run_traces/task_0031/r01.json,2bc9df1b94809e29efb2fc54e371bd793771eadf39ed47ccd2bb17f9b5e8ea87,3565,task_0031,task_0031_r01,2026-11-03T22:21:58,right exit,5,null
+run_traces/task_0032/r01.json,aa8a0abdf57c1a4930163c4a6c1e6b286bc3baef7408b3c283545f2c566b1763,1924,task_0032,task_0032_r01,2026-11-03T22:22:05,right exit,5,null
+run_traces/task_0033/r01.json,72246bc4ad06c8d230863681ea04240483131a49a84a2aa737b3a2110f79c41e,2126,task_0033,task_0033_r01,2026-11-03T22:22:16,right exit,5,null
+run_traces/task_0034/r01.json,a85a0517fbd2023a0adcf82487cd824eb2c01836dd01aa9fa1f2b58bc4022793,2262,task_0034,task_0034_r01,2026-11-03T22:22:30,right exit,5,null
+run_traces/task_0035/r01.json,4834c637615b4e5b1bcfa61566fff1eee4d5e42bf8342ae938bc11f5e2204738,2321,task_0035,task_0035_r01,2026-11-03T22:22:36,right exit,5,null
+run_traces/task_0036/r01.json,3bce44314e286c385887e7cc3f4f34c0c11e620d15b3a4a00e029cdd13ba2de1,3382,task_0036,task_0036_r01,2026-11-03T22:23:37,right exit,5,null
+run_traces/tb_regex_log/r01.json,a2d2308ebb365c7b3b7e0975050c0dc287a164e3ac8de8b574310d70c26ce962,3938,tb_regex_log,tb_regex_log_r01,2026-11-05T09:16:03,right exit,9,null
+run_traces/tb_regex_log/r02.json,f1dfbe9ef6f70dbf8b4ec0ea0b8c54efd735c58b85abcbda2572b663b1467dad,28322,tb_regex_log,tb_regex_log_r02,2026-11-05T09:33:30,right exit,17,null
+run_traces/term_0001/r01.json,ddcfdfada77f346ad9b7490f3017ab40d978dc743802a773a468ab3f8665eb89,3078,term_0001,term_0001_r01,2026-11-04T21:58:15,right exit,5,null
+run_traces/term_0002/r01.json,0b133bdf8a0624ea91fb9fbaa1ee63cac0557a6bf43ab33f06f850c69efadab1,3884,term_0002,term_0002_r01,2026-11-04T21:58:28,right exit,6,null
+run_traces/term_0003/r01.json,fec26bb3f40fe190cf8a934946180d66fe0ce7a1f7ec7241df0787762c5f5992,4046,term_0003,term_0003_r01,2026-11-04T21:58:39,right exit,9,null
+run_traces/term_0010/r01.json,09afbe41098598017c7a4205a07107af778ed1b79e0c3d09b7b0831680c435e5,4438,term_0010,term_0010_r01,2026-11-05T18:10:55,right exit,7,null
+run_traces/term_0011/r01.json,917361d2428fa746a45e87240188c1f82858fd61f2b024ccb904ae519925e380,3724,term_0011,term_0011_r01,2026-11-05T18:11:05,right exit,7,null
+run_traces/term_0012/r01.json,4aacf291511e722d425d5b79c2373959671a31354c878d08f9d7c1ecd9dca0ea,71674,term_0012,term_0012_r01,2026-11-05T18:12:59,Hit max_turns,60,"[""test_json"", ""test_csv"", ""test_text""]"
+run_traces/term_0012/r02.json,9e3cf3bbd532460eb5cc8342297baf736e026eed5a29f99e19d839fb3b6d92dd,3814,term_0012,term_0012_r02,2026-11-05T18:18:01,right exit,8,null
