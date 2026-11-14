@@ -68,6 +68,11 @@ def is_write(step):
     return False
 
 
+# tool_kind 的五种返回值；计数和特征都按这个顺序展开，
+# 保证 CSV 和特征矩阵的列顺序一致。
+TOOL_KINDS = ("navigate", "read", "write", "verify", "other")
+
+
 def tool_kind(step):
     """这一步属于哪类：navigate / read / write / verify / other。"""
     tool = step.get("tool")

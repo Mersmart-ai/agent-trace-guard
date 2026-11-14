@@ -48,8 +48,7 @@ cp .env.example .env        # Windows: Copy-Item .env.example .env
 pytest -q
 python -m fbs.data.audit \
   --traces data/raw_v1/run_traces \
-  --out-csv data/labels/healthy.csv \
-  --out-md reports/audit_v1.md
+  --out-csv data/labels/healthy.csv
 ```
 
 运行任务会调用模型、产生费用：

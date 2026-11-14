@@ -4,21 +4,20 @@
 
     python -m fbs.data.audit \
         --traces data/raw_v1/run_traces \
-        --out-csv data/labels/healthy.csv \
-        --out-md reports/audit_v1.md
+        --out-csv data/labels/healthy.csv
 """
 import argparse
 import csv
 import json
-from collections import Counter
+import sys
 from pathlib import Path
 
-from fbs.actions import is_write
+from fbs.actions import TOOL_KINDS, is_write, tool_kind
 from fbs.legacy.locate import build_states, locate, regressions
 
 
 def load_traces(root):
-    """按路径顺序读取 trace；解析失败也保留一行错误记录。
+    """按路径顺序读取 trace；解析失败也产出错误记录。
 
     递归遍历 root 下所有 *.json（目录结构是 <task>/rNN.json），
     每个文件产出一个三元组，调用方用 data is None 判断这个文件是不是坏的。
@@ -26,7 +25,7 @@ def load_traces(root):
     :param root: trace 根目录，str 或 Path；
                  例如 "data/raw_v1/run_traces"，也兼容 Windows 反斜杠写法
     :return: 生成器，每次 yield (path, data, err)
-             - path: Path，这个 json 的路径，写进报告"解析失败"章节用
+             - path: Path，这个 json 的路径，解析失败时打印到 stderr 用
              - data: dict，解析成功的 trace 内容；解析失败时为 None
              - err:  str，JSON 解析失败的异常文本；解析成功时为 None
 
@@ -175,14 +174,14 @@ def classify_run(data):
                               "result": {...}, "ok": true,
                               "test_state": None | [] | ["test_x"],
                               "judge": None | "判据名"}
-    :return: dict，字段顺序固定（write_csv 依赖这个顺序），共 16 个键，分四组：
+    :return: dict，字段顺序固定（write_csv 依赖这个顺序），共 18 个键，分四组：
              身份 3 项  task / run_id / ts
-             过程 5 项  reason / steps / writes / reads / verifies
+             过程 7 项  reason / steps / navigate / read / write / verify / other
              质量 4 项  regressions / duplicate_rate / final_test_state /
                         missing_test_state_steps
              环境 3 项  valid_env / env_invalid_reason / tests_touched
              标签 1 项  healthy_class
-             （main 之后还会补一个 kind，所以最终 CSV 是 17 列）
+             （main 之后还会补一个 kind，所以最终 CSV 是 19 列）
 
     整个函数就四步：
       1. 算出最终判分 final（三态：None / [] / ["a","b"]）
@@ -209,6 +208,10 @@ def classify_run(data):
     reg = regressions(states)           # {步号: [这步新变红的测试]}；看过程，不看最终态
     turns = len(history)                # 总步数 = 轨迹长度
     dup = duplicate_rate(history)       # 重复动作率；高值 = 在打转
+    # 动作计数统一走 tool_kind（fbs.actions），和 features.py 同一个函数
+    kinds = {kind: 0 for kind in TOOL_KINDS}
+    for h in history:
+        kinds[tool_kind(h)] += 1
     task = data.get("task", "")         # 任务目录名，也是切数据集时的分组键
     # 写步骤却没有 test_state = 强制判分没生效。
     # locate() 把 test_state=None 理解成"这步不改变状态"，
@@ -245,7 +248,7 @@ def classify_run(data):
         label = "harness_violation_success"
     elif reg:
         label = "absorbed_error_success"
-    elif turns >= 15 and dup >= 0.3:
+    elif dup >= 0.3:
         label = "inefficient_success"
     else:
         label = "clean_success"
@@ -256,13 +259,13 @@ def classify_run(data):
         "ts": data.get("ts", ""),
         "reason": reason,
         "steps": turns,
-        # 行为画像三个计数，口径故意不同：
-        #   writes   任何改文件系统的动作（write_file，以及 bash 的 > / mv / sed -i 等）
-        #   reads    只数 read_file 和 grep；不含 bash 的 cat/ls，也不含 list_files
-        #   verifies 只数 run_tests
-        "writes": sum(1 for h in history if is_write(h)),
-        "reads": sum(1 for h in history if h.get("tool") in ("read_file", "grep")),
-        "verifies": sum(1 for h in history if h.get("tool") == "run_tests"),
+        # 动作计数统一走 tool_kind（fbs.actions），和 features.py 同一口径：
+        #   navigate list_files / grep
+        #   read     read_file / 只读 bash
+        #   write    write_file / 会改文件系统的 bash
+        #   verify   run_tests
+        #   other    finish 等
+        **kinds,
         "regressions": len(reg),            # "变红"的步数，不是最终还红的测试条数
         "duplicate_rate": dup,
         # 存 JSON 字符串而不是 Python 值，因为 CSV 只能放标量。
@@ -299,128 +302,25 @@ def write_csv(rows, out_path):
         writer.writerows(rows)
 
 
-def write_markdown(rows, errors, out_path, traces_root):
-    """把审计结果写成给人看的 Markdown 报告。
-
-    章节顺序固定：
-      1. 头部：读取目录 / 总 trace 数 / 解析失败数
-      2. 健康类别分布表（按数量降序）
-      3. 环境/工具异常原因表（没有异常时写"（无）"，保证表结构稳定）
-      4. 强制判分缺失：有写步骤缺 test_state 的 run（只列前 10 条，但计数是全量）
-      5. 步数分布表（5 个区间，缺的区间补 0）
-      6. 最长的 15 条（人工抽查长程轨迹用）
-      7. 解析失败明细：只有 errors 非空时才出现
-
-    :param rows: list[dict]，同 write_csv，每条 trace 一行
-    :param errors: list[tuple]，每项是 (path, err)，
-                   path 是 Path、err 是 JSON 解析异常的文本；
-                   来自 load_traces 里 data is None 的那批文件
-    :param out_path: 输出路径，str 或 Path；
-                     例如 "reports/audit_v1.md"，父目录不存在会自动创建
-    :param traces_root: 本次读的 trace 目录，只用来写在报告开头，
-                        让报告能自证"这些数字来自哪个快照"
-    :return: None，直接写盘
-    """
-    out = Path(out_path)
-    out.parent.mkdir(parents=True, exist_ok=True)
-
-    class_counts = Counter(r["healthy_class"] for r in rows)
-
-    invalid_counts = Counter(r["env_invalid_reason"] for r in rows if r["env_invalid_reason"])
-    step_buckets = Counter()
-    for r in rows:
-        n = r["steps"]
-        if n <= 9:
-            bucket = "5-9"
-        elif n <= 14:
-            bucket = "10-14"
-        elif n <= 29:
-            bucket = "15-29"
-        elif n <= 59:
-            bucket = "30-59"
-        else:
-            bucket = "60+"
-        step_buckets[bucket] += 1
-
-    lines = []
-    lines.append("# Trace 审计报告 v1")
-    lines.append("")
-    lines.append(f"- 读取目录：`{traces_root}`")
-    lines.append(f"- 总 trace：{len(rows)}")
-    lines.append(f"- 解析失败：{len(errors)}")
-    lines.append("")
-    lines.append("## 健康类别")
-    lines.append("")
-    lines.append("| 类别 | 数量 |")
-    lines.append("|---|---:|")
-    for name, count in class_counts.most_common():
-        lines.append(f"| `{name}` | {count} |")
-    lines.append("")
-    lines.append("## 环境/工具异常原因")
-    lines.append("")
-    lines.append("| 原因 | 数量 |")
-    lines.append("|---|---:|")
-    if invalid_counts:
-        for name, count in invalid_counts.most_common():
-            lines.append(f"| `{name}` | {count} |")
-    else:
-        lines.append("| （无） | 0 |")
-    lines.append("")
-    lines.append("## 强制判分缺失")
-    lines.append("")
-    missing_runs = [r for r in rows if r["missing_test_state_steps"]]
-    lines.append(f"- 有写步骤缺 `test_state` 的 run：{len(missing_runs)}")
-    for r in missing_runs[:10]:
-        lines.append(f"  - `{r['run_id']}`：step {r['missing_test_state_steps']}")
-    lines.append("")
-    lines.append("## 步数分布")
-    lines.append("")
-    lines.append("| 区间 | 数量 |")
-    lines.append("|---|---:|")
-    for bucket in ["5-9", "10-14", "15-29", "30-59", "60+"]:
-        lines.append(f"| {bucket} | {step_buckets.get(bucket, 0)} |")
-    lines.append("")
-    lines.append("## 最长的 15 条")
-    lines.append("")
-    lines.append("| task | run | steps | class | reason |")
-    lines.append("|---|---|---:|---|---|")
-    for r in sorted(rows, key=lambda x: x["steps"], reverse=True)[:15]:
-        lines.append(
-            f"| {r['task']} | {r['run_id']} | {r['steps']} | "
-            f"`{r['healthy_class']}` | {r['reason']} |"
-        )
-    lines.append("")
-    if errors:
-        lines.append("## 解析失败")
-        lines.append("")
-        for path, err in errors:
-            lines.append(f"- `{path}`: {err}")
-        lines.append("")
-
-    out.write_text("\n".join(lines), encoding="utf-8")
-
-
 def main():
-    """命令行入口：读 trace → 逐条打标 → 写 CSV + Markdown。
+    """命令行入口：读 trace → 逐条打标 → 写 CSV。
 
     用法：
         python -m fbs.data.audit
         python -m fbs.data.audit --traces data/raw_v1/run_traces \\
-            --out-csv data/labels/healthy.csv --out-md reports/audit_v1.md
+            --out-csv data/labels/healthy.csv
 
-    四个命令行参数（都有默认值，直接跑就是审计 data/raw_v1 全量）：
+    三个命令行参数（都有默认值，直接跑就是审计 data/raw_v1 全量）：
         --traces   从哪读 trace，默认 data/raw_v1/run_traces，
                    会递归扫它下面所有 *.json
         --out-csv  审计明细表写哪，默认 data/labels/healthy.csv
-        --out-md   汇总报告写哪，默认 reports/audit_v1.md
         --tasks    任务根目录，只用来读 <task>/meta.json 里的 kind，默认 tasks
 
-    :return: None；成功时打印 rows/errors 计数和两个输出路径
+    :return: None；成功时打印 rows 计数和输出路径
     """
     parser = argparse.ArgumentParser(description="审计 trace 并生成健康标签")
     parser.add_argument("--traces", default="data/raw_v1/run_traces")
     parser.add_argument("--out-csv", default="data/labels/healthy.csv")
-    parser.add_argument("--out-md", default="reports/audit_v1.md")
     parser.add_argument("--tasks", default="tasks")
     args = parser.parse_args()
 
@@ -428,8 +328,6 @@ def main():
     errors = []
     for path, data, err in load_traces(args.traces):
         if data is None:
-            # 坏文件不参与统计，但必须进报告：
-            # 否则"80 条变 79 条"这种事没人会发现
             errors.append((path, err))
             continue
         row = classify_run(data)
@@ -438,17 +336,21 @@ def main():
         row["kind"] = _kind(row["task"], args.tasks)
         rows.append(row)
 
+    # 解析失败必须让调用方看见并失败：
+    # 否则"80 条悄悄变 79 条"，标签集少样本却没人发现
+    if errors:
+        for path, err in errors:
+            print(f"{path}: {err}", file=sys.stderr)
+        raise SystemExit(f"{len(errors)} 个 trace 解析失败")
+
     # 路径打错时必须立刻失败：write_csv 依赖 rows[0]，
     # 更重要的是不能安静地生成一份"0 条 trace、全部正常"的空报告
     if not rows:
         raise SystemExit("没有可审计的 trace")
 
-
     write_csv(rows, args.out_csv)
-    write_markdown(rows, errors, args.out_md, args.traces)
-    print(f"rows={len(rows)} errors={len(errors)}")
+    print(f"rows={len(rows)}")
     print(f"csv={args.out_csv}")
-    print(f"md={args.out_md}")
 
 
 if __name__ == "__main__":

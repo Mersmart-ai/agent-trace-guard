@@ -26,7 +26,7 @@ data/
 
 - **来源**：`python -m fbs.audit --traces data/raw_v1/run_traces ...`
 - **一行**：一条 trace
-- **列**：`task`, `run_id`, `ts`, `reason`, `steps`, `writes`, `reads`, `verifies`, `regressions`, `duplicate_rate`, `final_test_state`, `valid_env`, `env_invalid_reason`, `tests_touched`, `missing_test_state_steps`, `healthy_class`, `kind`
+- **列**：`task`, `run_id`, `ts`, `reason`, `steps`, `navigate`, `read`, `write`, `verify`, `other`, `regressions`, `duplicate_rate`, `final_test_state`, `valid_env`, `env_invalid_reason`, `tests_touched`, `missing_test_state_steps`, `healthy_class`, `kind`
 - **用途**：给正常轨迹建模挑 `clean_success`；不是原始数据
 - **行数**：80
 
@@ -36,8 +36,7 @@ data/
 # 审计旧归档，生成健康标签（先 pip install -e .）
 python -m fbs.data.audit \
   --traces data/raw_v1/run_traces \
-  --out-csv data/labels/healthy.csv \
-  --out-md reports/audit_v1.md
+  --out-csv data/labels/healthy.csv
 
 # 如果还没 pip install -e .：
 # PYTHONPATH=src python -m fbs.data.audit ...
