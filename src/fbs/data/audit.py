@@ -13,6 +13,7 @@ import sys
 from pathlib import Path
 
 from fbs.actions import TOOL_KINDS, is_write, tool_kind
+from fbs.analysis.features import duplicate_rate
 from fbs.legacy.locate import build_states, locate, regressions
 
 
@@ -75,32 +76,6 @@ def writes_to_tests(history):
         if "tests/" in text or "tests\\" in text or "/tests" in text:
             return True
     return False
-
-
-def duplicate_rate(history):
-    """重复动作率：这条轨迹里有多少比例的步骤是"以前做过的同一件事"。
-
-    :param history: 一条 trace 的 steps 列表，list[dict]
-    :return: float，保留 3 位小数
-             0.0  = 每步的动作都不一样（高效）
-             0.8  = 80% 的步是在重复之前做过的事（在打转 / 循环）
-             空 history 返回 0.0，避免除零
-
-    去重键 = (工具名, 参数 JSON)：
-      - 工具名相同但参数不同，算两个不同动作
-      - json.dumps 必须带 sort_keys=True，否则 {"a":1,"b":2} 和 {"b":2,"a":1}
-        会被当成两个不同动作，重复率被低估
-      - ensure_ascii=False 让中文参数保持原样（只为可读，不影响去重结果）
-
-    注意这是全轨迹口径，不看先后顺序：A B A B 和 A A B B 得分相同。
-    """
-    if not history:
-        return 0.0
-    seen = {
-        (h.get("tool"), json.dumps(h.get("args") or {}, ensure_ascii=False, sort_keys=True))
-        for h in history
-    }
-    return round(1 - len(seen) / len(history), 3)
 
 
 def _kind(task, tasks_root):

@@ -32,6 +32,37 @@ def run_features(trace):
     return {"steps": len(history), **counts}
 
 
+def action_key(step):
+    """判断两步是不是同一个动作：工具名 + 规范化后的 args。
+
+    json.dumps 必须带 sort_keys=True，否则 {"a":1,"b":2} 和 {"b":2,"a":1}
+    会被当成两个不同动作，重复率被低估。
+    """
+    return (
+        step.get("tool"),
+        json.dumps(step.get("args") or {}, ensure_ascii=False, sort_keys=True),
+    )
+
+
+def duplicate_rate(history):
+    """重复动作率：这条轨迹里有多少比例的步骤是"以前做过的同一件事"。
+
+    :param history: 一条 trace 的 steps 列表，list[dict]
+    :return: float，保留 3 位小数
+             0.0 = 每步的动作都不一样（高效）
+             0.8 = 80% 的步是在重复之前做过的事（在打转）
+             空 history 返回 0.0，避免除零
+
+    去重键 = action_key(h)：
+      - 工具名相同但参数不同，算两个不同动作
+      - 这是全轨迹口径，不看先后顺序：A B A B 和 A A B B 得分相同
+    """
+    if not history:
+        return 0.0
+    seen = {action_key(h) for h in history}
+    return round(1 - len(seen) / len(history), 3)
+
+
 def step_features(trace):
     """逐步提取特征；每一行只用当前步及之前的信息。
 
@@ -47,6 +78,8 @@ def step_features(trace):
              since_test   距上次 run_tests 几步；从没测过就一直累加
              since_write  距上次写几步
              result_len   工具输出的字符数
+             is_dup       和之前某一步的 tool+args 完全相同
+             repeat_streak 连续重复的次数；第一次出现是 0
              prev_kind    上一步的 kind；第一步为 None
 
     注意 since_test 只在 run_tests 时归零：
@@ -60,6 +93,9 @@ def step_features(trace):
     last_judge = None
     since_test = 0
     since_write = 0
+    seen = set()
+    last_key = None
+    streak = 0
 
     for i, h in enumerate(history, 1):
         kind = tool_kind(h)
@@ -79,6 +115,11 @@ def step_features(trace):
             last_fails = fails
             last_judge = judge
 
+        key = action_key(h)
+        is_dup = key in seen
+        streak = streak + 1 if key == last_key else 0
+        seen.add(key)
+
         result = h.get("result")
         rows.append({
             "step": h.get("step", i),
@@ -91,8 +132,11 @@ def step_features(trace):
             "since_test": since_test,
             "since_write": since_write,
             "result_len": len(json.dumps(result, ensure_ascii=False)) if result is not None else 0,
+            "is_dup": is_dup,
+            "repeat_streak": streak,
             "prev_kind": prev_kind,
         })
         prev_kind = kind
+        last_key = key
 
     return rows
