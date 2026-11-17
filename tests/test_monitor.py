@@ -66,6 +66,29 @@ def test_error():
     assert "error" in names
 
 
+def test_unverified_write():
+    history = [
+        _step(1, "read_file", {"path": "a.py"}),
+        _step(2, "write_file", {"path": "a.py", "content": "x"}, test_state=[]),
+        _step(3, "run_tests", test_state=[]),
+        _step(4, "write_file", {"path": "a.py", "content": "y"}, test_state=[]),
+        _step(5, "finish"),
+    ]
+    names = [a["rule"] for a in rule_alarms(history)]
+    assert "unverified_write" in names
+
+
+def test_verified_write_no_alarm():
+    history = [
+        _step(1, "read_file", {"path": "a.py"}),
+        _step(2, "write_file", {"path": "a.py", "content": "x"}, test_state=[]),
+        _step(3, "run_tests", test_state=[]),
+        _step(4, "finish"),
+    ]
+    names = [a["rule"] for a in rule_alarms(history)]
+    assert "unverified_write" not in names
+
+
 def test_blind_code_task():
     history = [
         _step(1, "write_file", {"path": "a.py", "content": "x"}, test_state=[]),

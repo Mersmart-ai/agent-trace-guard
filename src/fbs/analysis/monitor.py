@@ -7,15 +7,16 @@
   delta      任意一步 delta_fails > 0（新弄红）
   dup2       任意一步 repeat_streak >= 2（连续重复 3 次以上）
   error      任意一步 ok == False（工具调用失败）
+  unverified_write 最后一次写之后没有 run_tests（长程里常见）
   blind      第一次写是 write_file，且之前没读过文件（终端 bash 任务不适用）
 
-strict 规则 = no_verify + delta + dup2 + error
+strict 规则 = no_verify + delta + dup2 + error + unverified_write
 full 规则   = strict + blind
 """
 from fbs.analysis.features import step_features
 
-RULES = ("no_verify", "delta", "dup2", "error", "blind")
-STRICT_RULES = ("no_verify", "delta", "dup2", "error")
+RULES = ("no_verify", "delta", "dup2", "error", "unverified_write", "blind")
+STRICT_RULES = ("no_verify", "delta", "dup2", "error", "unverified_write")
 
 
 def _first(rows, predicate):
@@ -71,6 +72,16 @@ def rule_alarms(history, final=True):
             "step": row["step"],
             "detail": f"tool={row['tool']}",
         })
+
+    writes = [i for i, row in enumerate(rows) if row["kind"] == "write"]
+    if writes:
+        last_write = writes[-1]
+        if not any(row["kind"] == "verify" for row in rows[last_write + 1:]):
+            alarms.append({
+                "rule": "unverified_write",
+                "step": rows[-1]["step"],
+                "detail": "last write not followed by run_tests",
+            })
 
     first_write = _first(rows, lambda r: r["kind"] == "write")
     if (

@@ -68,10 +68,11 @@ alarms = rule_alarms(trace["steps"])
 # [{"rule": "delta", "step": 5, "detail": "delta_fails=1"}, ...]
 ```
 
-- **strict**：`no_verify / delta / dup2 / error`
+- **strict**：`no_verify / delta / dup2 / error / unverified_write`
 - **full**：strict + `blind`
 - 最终评估：`reports/final_eval.md`
 - Fisher 负结果：`reports/fisher_value.md`
+- 长程故障注入：`reports/long_horizon_probe.md`
 
 ## 数据
 

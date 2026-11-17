@@ -18,9 +18,10 @@
 | `delta` | 任意一步新弄红测试 |
 | `dup2` | 任意一步连续重复 3 次以上 |
 | `error` | 任意一步工具调用失败 |
+| `unverified_write` | 最后一次写之后没有 `run_tests` |
 | `blind` | 第一次写是 `write_file` 且没读过文件（终端任务不适用） |
 
-- **strict** = `no_verify + delta + dup2 + error`
+- **strict** = `no_verify + delta + dup2 + error + unverified_write`
 - **full** = strict + `blind`
 
 ## 2. 80 条归档 trace
@@ -69,7 +70,12 @@
    - 如果要求过程规范，这些是**真实的 process deviation**
    - 论文/报告里应把两者分开：结果正确 vs 过程规范
 
-3. **Fisher 没有增量价值**
+3. **长程漏验证已覆盖**
+   - `unverified_write` 在长程 `skip_verify` 上 9/9
+   - clean/real 上 0 误报
+   - 见 `reports/long_horizon_probe.md`
+
+4. **Fisher 没有增量价值**
    - 见 `reports/fisher_value.md`
    - 固定切分上的 `late_nav` 9/9 不跨校准折稳定（中位 0%）
    - Fisher 不进生产监控器
