@@ -1,15 +1,15 @@
 # first-bad-step
 
-Positive-only normal-trace monitoring and long-horizon error control for coding agents.
+Process-conformance monitoring for coding agents.
 
-> 当前状态：**pilot**。主线已从"失败归因"转为"正常轨迹分布 + 长程错误控制"。
-> 旧的归因方案文档已删除，当前计划见 [`docs/prereg.md`](docs/prereg.md)。
+> 当前状态：**pilot / rules-only**。统计模型（Fisher）没有证明稳定的增量价值，
+> 正式监控器采用可解释的过程规则；实验与负结果见 `reports/`。
 
 ## 这是什么
 
 - 一个 agent harness：让模型在隔离工作区里读/改代码、跑测试，并记录每一步。
 - 一个数据审计层：从 trace 里标出健康成功、环境异常、失败和作弊样本。
-- 下一阶段：只用健康成功轨迹建模"正常过程"，用 conformal/序贯方法控制误报率，并在长程任务里做检测和干预。
+- 一个规则监控器：判断过程偏离（不验证、回退、打转、工具错误、盲写）。
 
 **当前不做**：不再扩展"哪一步弄坏了"的失败归因；`src/fbs/legacy/` 只是标签工具。
 
@@ -22,7 +22,7 @@ src/fbs/
 ├── llm.py              # DeepSeek / DashScope 客户端
 ├── agent/              # loop / policy / tools / judge
 ├── data/               # trace 落盘 / audit 标签
-├── analysis/           # 评测分析（features/normal/... 待建）
+├── analysis/           # features.py / monitor.py（规则监控）
 └── legacy/             # locate / classify / report（标签与旧报告）
 
 tests/                  # 项目单测（不跑 tasks/ 里的题目）
@@ -59,6 +59,20 @@ python run.py
 
 `ONLY` 在 `src/fbs/cli.py` 里，用于单任务调试。
 
+## 规则监控
+
+```python
+from fbs.analysis.monitor import rule_alarms, strict_alarms
+
+alarms = rule_alarms(trace["steps"])
+# [{"rule": "delta", "step": 5, "detail": "delta_fails=1"}, ...]
+```
+
+- **strict**：`no_verify / delta / dup2 / error`
+- **full**：strict + `blind`
+- 最终评估：`reports/final_eval.md`
+- Fisher 负结果：`reports/fisher_value.md`
+
 ## 数据
 
 - `data/raw_v1/`：冻结的 80 条旧 trace，不回写；`manifest.csv` 记录 SHA256。
@@ -71,9 +85,10 @@ python run.py
 - [x] harness（loop / tools / policy / judge / trace）
 - [x] trace 审计与环境异常标记
 - [x] workspace 每次运行前清理
-- [ ] 正常轨迹特征（`analysis/features.py`）
-- [ ] 正常模型 + conformal 序贯检测
-- [ ] 长程运行时干预
+- [x] 正常轨迹特征（`analysis/features.py`）
+- [x] 规则监控（`analysis/monitor.py`）
+- [ ] 正常模型 + conformal（Fisher 未证明增量价值，暂不进入主线）
+- [ ] 长程运行时干预（最小 A/B 为负结果，见 `reports/intervention_ab.md`）
 - [ ] 评估与论文/简历材料
 
 ## 开源说明

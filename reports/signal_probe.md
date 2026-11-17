@@ -45,9 +45,11 @@ t≥9 之后几乎没有校准样本，这是长程检测的硬限制。
 |---|---|
 | `drop_verify` | 删掉最后一次 `run_tests`，没主动验证就交差 |
 | `repeat_read` | 把第一次读重复 4 次，打转 |
-| `write_no_test` | 插入一次没有 `test_state` 的写，强制判分失效 |
 | `regression_after_green` | 把第二次全过的测试改成红，改坏又修好 |
 | `extra_writes` | 把第一次写重复 3 次，反复改同一处 |
+
+没有纳入“写后没有 `test_state`”：当前 loop 每次 `write_file` / `bash` 后都会
+强制判分，正常跑不出这种 trace。它属于数据层的不变量检查，不是 agent 行为异常。
 
 打分方式：
 
@@ -75,7 +77,6 @@ clean 基准：
 |---|---:|---:|---|
 | `drop_verify` | 91% | 87% | `since_test` 93%、`since_write` 87% |
 | `repeat_read` | 100% | 100% | `repeat_streak` 100%、`since_test` 45% |
-| `write_no_test` | 100% | 100% | `tested` 100%、`is_dup` 100% |
 | `regression_after_green` | 100% | **24%** | `delta_fails` 100% |
 | `extra_writes` | 100% | 100% | `is_dup` 100%、`repeat_streak` 100% |
 
@@ -83,7 +84,8 @@ clean 基准：
 
 ### 有信号
 
-五种已知偏离里，四种在轨迹级有 87–100% 检出，clean 轨迹误报 8.9%。
+四种 harness 允许的偏离里，三种在轨迹级有 87–100% 检出；
+回归类只有 24%，但单特征 `delta_fails` 是 100%。clean 轨迹误报 8.9%。
 **特征不是白算的，计划可以继续。**
 
 ### 但分数设计比特征本身更关键

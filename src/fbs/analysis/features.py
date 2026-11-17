@@ -77,6 +77,9 @@ def step_features(trace):
              delta_fails  和上一次同判据的观测比，红测试增减
              since_test   距上次 run_tests 几步；从没测过就一直累加
              since_write  距上次写几步
+             n_verify     到这一步为止调用了几次 run_tests
+             n_inspect    到这一步为止看了几次工作区（read_file/grep/list_files）
+             n_read_file  到这一步为止读了几次 read_file（不含 list_files/grep）
              result_len   工具输出的字符数
              is_dup       和之前某一步的 tool+args 完全相同
              repeat_streak 连续重复的次数；第一次出现是 0
@@ -93,6 +96,9 @@ def step_features(trace):
     last_judge = None
     since_test = 0
     since_write = 0
+    n_verify = 0
+    n_inspect = 0
+    n_read_file = 0
     seen = set()
     last_key = None
     streak = 0
@@ -106,6 +112,12 @@ def step_features(trace):
 
         since_test = 0 if kind == "verify" else since_test + 1
         since_write = 0 if kind == "write" else since_write + 1
+        if kind == "verify":
+            n_verify += 1
+        if h.get("tool") in ("read_file", "grep", "list_files"):
+            n_inspect += 1
+        if h.get("tool") == "read_file":
+            n_read_file += 1
 
         delta = 0
         if tested:
@@ -131,6 +143,9 @@ def step_features(trace):
             "delta_fails": delta,
             "since_test": since_test,
             "since_write": since_write,
+            "n_verify": n_verify,
+            "n_inspect": n_inspect,
+            "n_read_file": n_read_file,
             "result_len": len(json.dumps(result, ensure_ascii=False)) if result is not None else 0,
             "is_dup": is_dup,
             "repeat_streak": streak,

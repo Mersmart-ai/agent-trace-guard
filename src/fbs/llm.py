@@ -39,6 +39,17 @@ BACKEND = os.environ.get("FBS_BACKEND", "deepseek")
 # 换模型：FBS_MODEL=qwen-plus python run.py
 MODEL = os.environ.get("FBS_MODEL", "deepseek-chat")
 
+# 每次 API 调用的 token 用量，供批量脚本统计成本
+USAGE = []
+
+
+def usage_totals():
+    return {
+        "calls": len(USAGE),
+        "prompt_tokens": sum(u["prompt_tokens"] for u in USAGE),
+        "completion_tokens": sum(u["completion_tokens"] for u in USAGE),
+    }
+
 
 def _client():
     cfg = BACKENDS.get(BACKEND)
@@ -68,6 +79,12 @@ def call_model(messages, tools=None, model=None, thinking_off=False):
                 or "quota" in msg.lower() or "arrearage" in msg.lower():
             raise OutOfCredit(msg) from e
         raise
+    if getattr(response, "usage", None):
+        USAGE.append({
+            "model": kwargs["model"],
+            "prompt_tokens": response.usage.prompt_tokens,
+            "completion_tokens": response.usage.completion_tokens,
+        })
     return response.choices[0].message
 
 
