@@ -6,7 +6,7 @@
 - 脚本：`experiments/final_eval.py`
 - 数据：
   - `data/raw_v1`：80 条归档 trace
-  - `data/traces/real`：14 条真实模型 trace
+  - `data/traces/real`：23 条真实模型 trace（含 2 条 Django）
 
 ## 1. 监控器
 
@@ -18,10 +18,11 @@
 | `delta` | 任意一步新弄红测试 |
 | `dup2` | 任意一步连续重复 3 次以上 |
 | `error` | 任意一步工具调用失败 |
+| `long_gap` | 任意一步 `since_test > 15`（太久没显式测试） |
 | `unverified_write` | 最后一次写之后没有 `run_tests` |
 | `blind` | 第一次写是 `write_file` 且没读过文件（终端任务不适用） |
 
-- **strict** = `no_verify + delta + dup2 + error + unverified_write`
+- **strict** = `no_verify + delta + dup2 + error + long_gap + unverified_write`
 - **full** = strict + `blind`
 
 ## 2. 80 条归档 trace
@@ -44,26 +45,35 @@
 这不是随机噪声，是一次真实的错误路径调用。
 `clean_success` 只要求最终全绿，不要求过程没有工具错误。
 
-## 3. 14 条真实 trace
+## 3. 23 条真实 trace
 
-3 条报警，全部是 `error`：
+6 条报警：
 
 | trace | 错误 | 性质 |
 |---|---|---|
 | `amb_merge_vague_real_r01` | `read_file("..")` 被拒绝 | 越界尝试 |
 | `task_0001_real_r01` | `read_file("src/calc.py")` | 错误路径 |
 | `task_0003_real_r01` | `read_file("src/calc.py")` | 错误路径 |
+| `django_16820_real_r01` | `no_verify`、`long_gap`、`unverified_write` | 20 步，无主动验证，最终红 |
+| `django_16820_real_r02` | `long_gap`（step 16，since_test=16） | 60 步，长时间只读，最终红 |
 
-其余 11 条（含长程 `multi_0001`、`couple_0001`、`amb_*`）0 报警。
+其余 17 条（含长程 `multi_0001`、`couple_0001`、`amb_*`）0 报警。
 
-三条都最终全绿，但过程有真实工具错误。
+前四条最终全绿，但过程有真实工具错误；两条 Django 最终红，是真实的长程失败。
 
 ## 4. 结论
 
+0. **Django 真实任务已验证**
+   - 20 步和 60 步都撞 max_turns，最终 7 条测试仍红
+   - 60 步里 54 次 bash、0 次写、2 次测试；`long_gap` 在 step 16 抓到
+   - 完整判据只在结尾跑一次；中间步用快速判据
+
+
 1. **规则监控可用**
-   - 真实 clean 上 strict 报警 3/14，全部是真实工具错误
+   - 真实 trace 上 strict 报警 6/23：4 条工具错误 + 2 条 Django 长程失败
    - 80 条 clean 上 strict 报警 1/56，也是真实工具错误
    - `delta` 抓住 absorbed error，`dup2` 抓住打转/失败，`error` 抓住错误路径和越界
+   - `long_gap` 抓住 Django 的长时间只读/不验证
 
 2. **“误报”需要重新定义**
    - 如果 `clean_success` 只要求最终全绿，那么工具错误算误报

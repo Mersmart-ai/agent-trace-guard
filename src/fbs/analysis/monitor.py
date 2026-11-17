@@ -7,6 +7,7 @@
   delta      任意一步 delta_fails > 0（新弄红）
   dup2       任意一步 repeat_streak >= 2（连续重复 3 次以上）
   error      任意一步 ok == False（工具调用失败）
+  long_gap   任意一步 since_test > 15（太久没显式 run_tests）
   unverified_write 最后一次写之后没有 run_tests（长程里常见）
   blind      第一次写是 write_file，且之前没读过文件（终端 bash 任务不适用）
 
@@ -15,8 +16,9 @@ full 规则   = strict + blind
 """
 from fbs.analysis.features import step_features
 
-RULES = ("no_verify", "delta", "dup2", "error", "unverified_write", "blind")
-STRICT_RULES = ("no_verify", "delta", "dup2", "error", "unverified_write")
+RULES = ("no_verify", "delta", "dup2", "error", "long_gap", "unverified_write", "blind")
+STRICT_RULES = ("no_verify", "delta", "dup2", "error", "long_gap", "unverified_write")
+LONG_GAP = 15
 
 
 def _first(rows, predicate):
@@ -71,6 +73,14 @@ def rule_alarms(history, final=True):
             "rule": "error",
             "step": row["step"],
             "detail": f"tool={row['tool']}",
+        })
+
+    row = _first(rows, lambda r: r["since_test"] > LONG_GAP)
+    if row:
+        alarms.append({
+            "rule": "long_gap",
+            "step": row["step"],
+            "detail": f"since_test={row['since_test']}",
         })
 
     writes = [i for i, row in enumerate(rows) if row["kind"] == "write"]

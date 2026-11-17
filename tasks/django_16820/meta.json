@@ -12,5 +12,9 @@
   "judge_command": "{python} tests/runtests.py --parallel 1 migrations.test_optimizer migrations.test_autodetector",
   "total_tests": 217,
   "initial_failed": 7,
-  "note_on_tests": "SWE-bench 的 FAIL_TO_PASS 列表里有 2 条是文档字符串（数据集解析错误），实际红的是 7 条。判据跑整个两个模块（217 条），过了就说明没弄坏别的。"
+  "note_on_tests": "SWE-bench 的 FAIL_TO_PASS 列表里有 2 条是文档字符串（数据集解析错误），实际红的是 7 条。判据跑整个两个模块（217 条），过了就说明没弄坏别的。",
+  "fast_judge_command": "{python} tests/runtests.py --parallel 1 migrations.test_optimizer.OptimizerTests.test_create_model_add_index migrations.test_optimizer.OptimizerTests.test_create_model_index_together_rename_index migrations.test_optimizer.OptimizerTests.test_create_model_remove_index migrations.test_optimizer.OptimizerTests.test_create_model_remove_index_together_rename_index migrations.test_autodetector.AutodetectorTests.test_add_model_order_with_respect_to_index",
+  "fast_judge_timeout": 60,
+  "judge_timeout": 180,
+  "visible_timeout": 60
 }

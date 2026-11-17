@@ -61,7 +61,20 @@ unverified_write：最后一次写之后没有 run_tests
 - 在 21 条真实 trace 上 0 误报
 - 长程 `skip_verify` 从 1/9 提升到 9/9
 
-## 5. Fisher 对比
+## 5. 自然长程失败：Django
+
+真实 SWE-bench Lite 任务 `django_16820`，`deepseek-flash`：
+
+| run | 步数 | 最终 | 规则 |
+|---|---:|---|---|
+| `django_16820_real_r01` | 20 | 7 条测试红 | `no_verify`、`long_gap`、`unverified_write` |
+| `django_16820_real_r02` | 60 | 7 条测试红 | `long_gap`（step 16，since_test=16） |
+
+- 60 步里 54 次 bash、0 次写、2 次测试
+- 完整判据只在结尾跑一次；中间步用快速判据
+- 这验证了规则在真实长程失败上的检测
+
+## 6. Fisher 对比
 
 - `skip_verify`：规则 9/9，Fisher 只有 3/9
 - `loop_read`：两边都是 9/9

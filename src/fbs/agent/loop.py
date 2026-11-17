@@ -27,6 +27,11 @@ def agent_loop(workspace, tests, policy, judge_tests=None, opts=None):
                  python          —— 用哪个解释器跑测试（默认当前进程的）
                  visible_command —— 模型调 run_tests 时执行的命令（不给就走 pytest）
                  judge_command   —— 判据执行的命令（不给就沿用 visible_command）
+                 fast_judge_command —— 中间步（write/bash）的快速判据；不给就用 judge_command
+                 max_turns       —— 最多跑多少步（默认 MAX_TURNS）
+                 judge_timeout   —— 完整判据超时秒数
+                 fast_judge_timeout —— 快速判据超时秒数
+                 visible_timeout —— 模型调 run_tests 时可见测试的超时秒数
                  命令里可以用 {python} 占位符。给 command 时 cwd 是 workspace。
     :return:(history, reason)
     """
@@ -36,8 +41,13 @@ def agent_loop(workspace, tests, policy, judge_tests=None, opts=None):
     py = opts.get("python")
     visible_cmd = opts.get("visible_command")
     judge_cmd = opts.get("judge_command") or visible_cmd
+    fast_cmd = opts.get("fast_judge_command")
+    judge_timeout = opts.get("judge_timeout")
+    fast_timeout = opts.get("fast_judge_timeout")
+    visible_timeout = opts.get("visible_timeout")
+    max_turns = opts.get("max_turns", MAX_TURNS)
     history = []
-    for step in range(1, MAX_TURNS + 1):
+    for step in range(1, max_turns + 1):
         action = {}     # policy 接不住异常时，保证后面有值可用
         try:
             action = policy(step, history)
@@ -61,23 +71,31 @@ def agent_loop(workspace, tests, policy, judge_tests=None, opts=None):
                 # 不加这一条的话，终端任务的 trace 每隔十几步才有一个 test_state，
                 # 根本看不出"哪一步把东西弄坏了"。
                 # 代价：只读命令（ls / cat）也白跑一次测试，0.1 秒，可以接受。
-                test_state = judge_state(run_tests(workspace, judge_dir, python=py, command=judge_cmd))
-                step_judge = judge_name
+                step_cmd = fast_cmd or judge_cmd
+                step_timeout = fast_timeout if fast_cmd else judge_timeout
+                test_state = judge_state(run_tests(
+                    workspace, judge_dir, python=py, command=step_cmd, timeout=step_timeout))
+                step_judge = "fast" if fast_cmd else judge_name
             elif action["tool"] == "write_file":
                 result = write_file(workspace, action["args"]["path"], action["args"]["content"])
                 # 强制判分：写完由循环自动测一次，状态记在这一步上。
                 # 注意 result 仍然是"写入成功"——模型看不到这次测试的结果，
                 # 这样它自己调 run_tests 的记录还留着，可以统计"它有没有主动验证"。
-                test_state = judge_state(run_tests(workspace, judge_dir, python=py, command=judge_cmd))
-                step_judge = judge_name
+                step_cmd = fast_cmd or judge_cmd
+                step_timeout = fast_timeout if fast_cmd else judge_timeout
+                test_state = judge_state(run_tests(
+                    workspace, judge_dir, python=py, command=step_cmd, timeout=step_timeout))
+                step_judge = "fast" if fast_cmd else judge_name
             elif action["tool"] == "run_tests":
                 # 两套测试分开：模型看到的（tests）和记进 trace 的（judge_dir）。
                 # 没配隐藏测试时两者相同，只跑一次。
-                result = run_tests(workspace, tests, python=py, command=visible_cmd)
+                result = run_tests(workspace, tests, python=py,
+                                   command=visible_cmd, timeout=visible_timeout)
                 if judge_tests or judge_cmd:
                     test_state = judge_state(
-                        run_tests(workspace, judge_dir, python=py, command=judge_cmd))
-                    step_judge = judge_name
+                        run_tests(workspace, judge_dir, python=py,
+                                  command=judge_cmd, timeout=judge_timeout))
+                    step_judge = "full" if fast_cmd else judge_name
                 else:
                     test_state = judge_state(result)
             else:

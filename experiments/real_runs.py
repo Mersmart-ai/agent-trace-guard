@@ -16,8 +16,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from fbs.agent.judge import judge_state
 from fbs.agent.loop import agent_loop
 from fbs.agent.policy import TOOLS, model_policy
+from fbs.agent.tools import run_tests
 from fbs.data.trace import check_trace, prepare_workspace
 from fbs.llm import OutOfCredit, call_model, usage_totals
 
@@ -61,19 +63,22 @@ def load_meta(task_dir):
     return json.loads(meta_file.read_text(encoding="utf-8"))
 
 
-def run_one(task_dir, prompt="normal"):
+def run_one(task_dir, prompt="normal", max_turns=60):
     meta = load_meta(task_dir)
     if not (task_dir / "src").is_dir():
-        return None, None
+        return None, None, None
 
     workspace = prepare_workspace(task_dir, ROOT / "runs" / f"real_{task_dir.name}")
     if workspace is None:
-        return None, None
+        return None, None, None
 
     hidden = task_dir / "tests_hidden"
     judge_tests = hidden if hidden.is_dir() else None
-    opts = {}
-    for key in ("python", "visible_command", "judge_command"):
+    opts = {"max_turns": max_turns}
+    for key in (
+        "python", "visible_command", "judge_command", "fast_judge_command",
+        "judge_timeout", "fast_judge_timeout", "visible_timeout",
+    ):
         if meta.get(key):
             opts[key] = meta[key]
     if opts.get("judge_command"):
@@ -109,7 +114,7 @@ def run_one(task_dir, prompt="normal"):
             if r_reason != "right exit":
                 final_reason = r_reason
                 break
-        return history, final_reason
+        return history, final_reason, None
 
     task_md = ""
     if (task_dir / "task.md").exists():
@@ -122,10 +127,26 @@ def run_one(task_dir, prompt="normal"):
         judge_tests=judge_tests,
         opts=opts,
     )
-    return history, reason
+
+    # 跑完后用完整判据再判一次；Django 的 217 条测试只在这里跑
+    py = opts.get("python")
+    judge_cmd = opts.get("judge_command") or opts.get("visible_command")
+    judge_timeout = opts.get("judge_timeout")
+    if judge_cmd:
+        result = run_tests(
+            workspace, task_dir / "tests", python=py,
+            command=judge_cmd, timeout=judge_timeout,
+        )
+    else:
+        result = run_tests(
+            workspace, judge_tests or (task_dir / "tests"),
+            python=py, timeout=judge_timeout,
+        )
+    final_state = judge_state(result)
+    return history, reason, final_state
 
 
-def save_trace(task_name, run_index, history, reason, model):
+def save_trace(task_name, run_index, history, reason, final_state, model):
     folder = ROOT / "data" / "traces" / "real" / task_name
     folder.mkdir(parents=True, exist_ok=True)
     run_id = f"{task_name}_real_r{run_index:02d}"
@@ -136,6 +157,7 @@ def save_trace(task_name, run_index, history, reason, model):
         "ts": datetime.now().isoformat(timespec="seconds"),
         "reason": reason,
         "steps": history,
+        "final_test_state": final_state,
         "model": model,
     }
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -153,6 +175,7 @@ def main():
     ap.add_argument("--tasks", nargs="+", required=True)
     ap.add_argument("--runs", type=int, default=1)
     ap.add_argument("--prompt", choices=["normal", "bad"], default="normal")
+    ap.add_argument("--max-turns", type=int, default=60)
     args = ap.parse_args()
 
     model = os.environ.get("FBS_MODEL", "deepseek-chat")
@@ -168,7 +191,8 @@ def main():
             start = next_index(task_name)
             print(f"\n=== {task_name} r{start:02d} ===")
             try:
-                history, reason = run_one(task_dir, args.prompt)
+                history, reason, final_state = run_one(
+                    task_dir, args.prompt, args.max_turns)
             except OutOfCredit:
                 print("API 余额不足，停止。")
                 return
@@ -176,8 +200,12 @@ def main():
                 print("任务配置不完整，跳过。")
                 break
             bad = check_trace(history)
-            run_id, path = save_trace(task_name, start, history, reason, model)
-            print(f"[saved] {run_id}  steps={len(history)}  reason={reason}  path={path}")
+            run_id, path = save_trace(
+                task_name, start, history, reason, final_state, model)
+            print(
+                f"[saved] {run_id}  steps={len(history)}  reason={reason}  "
+                f"final={final_state}  path={path}"
+            )
             if bad:
                 print(f"⚠️ 写步骤缺 test_state：{bad}")
             print(f"usage={usage_totals()}")

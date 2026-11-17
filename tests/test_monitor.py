@@ -66,6 +66,15 @@ def test_error():
     assert "error" in names
 
 
+def test_long_gap():
+    history = [
+        _step(i, "read_file", {"path": f"f{i}.py"})
+        for i in range(1, 17)
+    ]
+    names = [a["rule"] for a in rule_alarms(history)]
+    assert "long_gap" in names
+
+
 def test_unverified_write():
     history = [
         _step(1, "read_file", {"path": "a.py"}),

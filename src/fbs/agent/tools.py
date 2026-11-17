@@ -252,11 +252,13 @@ def grep(workspace, pattern, path="."):
     return "\n".join(hits) if hits else "（没有匹配）"
 
 
-def run_tests(workspace, tests, python=None, command=None):
+def run_tests(workspace, tests, python=None, command=None, timeout=None):
     """
     此函数用来检验agent修改后的结果是否正确
     :param workspace:agent工作区的路径
     :param tests:pytest测试的路径，是task原文件下的，agent接触不到
+    :param timeout:秒；None 表示用默认的 TIMEOUT_SEC。
+                   Django 这类完整判据需要更长时间。
     :return:退出码 + 没通过的测试名
 
     必须带超时：被测代码可能死循环（比如把 n &= n-1 写成 n ^= n-1），
@@ -285,7 +287,7 @@ def run_tests(workspace, tests, python=None, command=None):
     try:
         r = subprocess.run(
             args, **({"cwd": run_cwd} if run_cwd else {}), env=env,
-            capture_output=True, text=True, timeout=TIMEOUT_SEC,
+            capture_output=True, text=True, timeout=timeout or TIMEOUT_SEC,
             encoding="utf-8", errors="replace",
         )
     except subprocess.TimeoutExpired:
