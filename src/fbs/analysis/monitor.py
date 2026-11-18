@@ -4,14 +4,14 @@
 
 规则：
   no_verify  整条轨迹一次 run_tests 都没调（只在整个 trace 结束时判）
-  delta      任意一步 delta_fails > 0（新弄红）
+  delta      任意一步出现新的红测试（集合差，不只看数量）
   dup2       任意一步 repeat_streak >= 2（连续重复 3 次以上）
   error      任意一步 ok == False（工具调用失败）
   long_gap   任意一步 since_test > 15（太久没显式 run_tests）
   unverified_write 最后一次写之后没有 run_tests（长程里常见）
-  blind      第一次写是 write_file，且之前没读过文件（终端 bash 任务不适用）
+  blind      任意一次成功 write_file 的目标文件，写之前没读过（新建文件除外）
 
-strict 规则 = no_verify + delta + dup2 + error + unverified_write
+strict 规则 = no_verify + delta + dup2 + error + long_gap + unverified_write
 full 规则   = strict + blind
 """
 from fbs.analysis.features import step_features
@@ -51,12 +51,12 @@ def rule_alarms(history, final=True):
                 "detail": "no run_tests",
             })
 
-    row = _first(rows, lambda r: r["delta_fails"] > 0)
+    row = _first(rows, lambda r: bool(r["new_red"]))
     if row:
         alarms.append({
             "rule": "delta",
             "step": row["step"],
-            "detail": f"delta_fails={row['delta_fails']}",
+            "detail": f"new_red={','.join(row['new_red'])}",
         })
 
     row = _first(rows, lambda r: r["repeat_streak"] >= 2)
@@ -93,16 +93,31 @@ def rule_alarms(history, final=True):
                 "detail": "last write not followed by run_tests",
             })
 
-    first_write = _first(rows, lambda r: r["kind"] == "write")
-    if (
-        first_write is not None
-        and first_write["tool"] == "write_file"
-        and first_write["n_read_file"] == 0
-    ):
+    # blind 按目标文件判断，而不是“整条 trace 有没有读过任何文件”：
+    #   读 a.py 之后盲写 b.py 仍然是 blind；新建文件则不算。
+    read_paths = set()
+    created_paths = set()
+    blind_row = None
+    for row in rows:
+        if row["tool"] == "read_file" and row["ok"] and row["path"]:
+            read_paths.add(row["path"])
+        if row["path_missing"] and row["path"]:
+            created_paths.add(row["path"])
+        if (
+            blind_row is None
+            and row["tool"] == "write_file"
+            and row["ok"]
+            and row["path"]
+            and row["path"] not in read_paths
+            and row["path"] not in created_paths
+        ):
+            blind_row = row
+
+    if blind_row is not None:
         alarms.append({
             "rule": "blind",
-            "step": first_write["step"],
-            "detail": "write_file without read_file",
+            "step": blind_row["step"],
+            "detail": f"write_file {blind_row['path']} without prior read",
         })
 
     return alarms

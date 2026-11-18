@@ -74,13 +74,16 @@ def step_features(trace):
              ok           工具调用是否成功
              tested       这一步后有没有 test_state（含写后强制判分）
              fails        红测试条数；没测过时为 0，用 tested 区分
-             delta_fails  和上一次同判据的观测比，红测试增减
+             delta_fails  和上一次同判据的观测比，红测试数量增减
+             new_red      和上一次同判据的观测比，新出现的红测试名
              since_test   距上次 run_tests 几步；从没测过就一直累加
              since_write  距上次写几步
              n_verify     到这一步为止调用了几次 run_tests
              n_inspect    到这一步为止看了几次工作区（read_file/grep/list_files）
              n_read_file  到这一步为止读了几次 read_file（不含 list_files/grep）
              result_len   工具输出的字符数
+             path         这一步 read_file/write_file 的目标路径；其他工具为 None
+             path_missing 这一步 write_file 因“文件不存在”失败（说明是新建文件）
              is_dup       和之前某一步的 tool+args 完全相同
              repeat_streak 连续重复的次数；第一次出现是 0
              prev_kind    上一步的 kind；第一步为 None
@@ -92,7 +95,7 @@ def step_features(trace):
     history = trace.get("steps") or []
     rows = []
     prev_kind = None
-    last_fails = None
+    last_state = None
     last_judge = None
     since_test = 0
     since_write = 0
@@ -107,7 +110,8 @@ def step_features(trace):
         kind = tool_kind(h)
         tested = h.get("test_state") is not None
         state = h.get("test_state")
-        fails = len(state) if isinstance(state, list) else 0
+        current = set(state) if isinstance(state, list) else set()
+        fails = len(current)
         judge = h.get("judge")
 
         since_test = 0 if kind == "verify" else since_test + 1
@@ -120,11 +124,14 @@ def step_features(trace):
             n_read_file += 1
 
         delta = 0
+        new_red = []
         if tested:
             # 判据换了就不能相减：多轮任务里两套判据的失败集合不可比
-            if last_fails is not None and judge == last_judge:
-                delta = fails - last_fails
-            last_fails = fails
+            if last_state is not None and judge == last_judge:
+                delta = fails - len(last_state)
+                # 集合差而不是数量差：修好 a、弄坏 b 时数量不变，但 b 是新红的
+                new_red = sorted(current - last_state)
+            last_state = current
             last_judge = judge
 
         key = action_key(h)
@@ -132,7 +139,17 @@ def step_features(trace):
         streak = streak + 1 if key == last_key else 0
         seen.add(key)
 
+        args = h.get("args") or {}
+        path = args.get("path")
         result = h.get("result")
+        # write_file 失败且原因是“文件不存在”：这条路径本来就没东西可读，
+        # blind 规则不能拿它当“没读就写”。
+        path_missing = bool(
+            h.get("tool") == "write_file"
+            and not h.get("ok")
+            and isinstance(result, str)
+            and "不存在" in result
+        )
         rows.append({
             "step": h.get("step", i),
             "tool": h.get("tool"),
@@ -141,12 +158,15 @@ def step_features(trace):
             "tested": tested,
             "fails": fails,
             "delta_fails": delta,
+            "new_red": new_red,
             "since_test": since_test,
             "since_write": since_write,
             "n_verify": n_verify,
             "n_inspect": n_inspect,
             "n_read_file": n_read_file,
             "result_len": len(json.dumps(result, ensure_ascii=False)) if result is not None else 0,
+            "path": path,
+            "path_missing": path_missing,
             "is_dup": is_dup,
             "repeat_streak": streak,
             "prev_kind": prev_kind,

@@ -112,7 +112,9 @@ def main():
         n = len(items)
         green = sum(1 for x in items if x["final_ok"])
         print(f"{variant_name:14} n={n:2d}  final_green={green}/{n}")
-        for rule in ("no_verify", "delta", "dup2", "error", "blind", "tier1_dup2", "tier_all"):
+        for rule in ("no_verify", "delta", "dup2", "error", "long_gap",
+                     "unverified_write", "blind", "strict", "full",
+                     "tier1_dup2", "tier_all"):
             hits = sum(1 for x in items if x["rules"][rule])
             print(f"    rule {rule:12} {hits}/{n}")
         for q in (0.90, 0.95):

@@ -168,13 +168,9 @@ def main():
         full_hits = 0
         for t in test:
             rules = static_rules(t)
-            strict = (
-                rules["no_verify"] or rules["delta"]
-                or rules["dup2"] or rules["error"]
-            )
-            if strict:
+            if rules["strict"]:
                 strict_hits += 1
-            if strict or rules["blind"]:
+            if rules["full"]:
                 full_hits += 1
         print(
             f"q={q:.2f}  fisher={fisher_hits}/{len(test)}={clean_far[q]:.1%}  "
@@ -203,10 +199,8 @@ def main():
                 continue
 
             rules = static_rules(trace)
-            rule_strict = (
-                rules["no_verify"] or rules["delta"] or rules["dup2"] or rules["error"]
-            )
-            rule_full = rule_strict or rules["blind"]
+            rule_strict = rules["strict"]
+            rule_full = rules["full"]
 
             pool95, thr95 = calibrators[0.95]
             prealarmed = max(score_trace(source, pool95)) > thr95

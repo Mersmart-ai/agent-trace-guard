@@ -149,6 +149,8 @@ def classify_run(data):
                               "result": {...}, "ok": true,
                               "test_state": None | [] | ["test_x"],
                               "judge": None | "判据名"}
+                 - "final_test_state": 可选，list 或 None；
+                             跑完后用完整判据再判一次的结果（real_runs 写入）
     :return: dict，字段顺序固定（write_csv 依赖这个顺序），共 18 个键，分四组：
              身份 3 项  task / run_id / ts
              过程 7 项  reason / steps / navigate / read / write / verify / other
@@ -159,7 +161,7 @@ def classify_run(data):
              （main 之后还会补一个 kind，所以最终 CSV 是 19 列）
 
     整个函数就四步：
-      1. 算出最终判分 final（三态：None / [] / ["a","b"]）
+      1. 算出最终判分 final：优先用 final_test_state，缺失时退回 locate(steps)
       2. 算出 7 个派生量（下面每个变量都有单行说明）
       3. 按 if-elif 的先后顺序定标签（顺序即优先级，先排除、后兜底）
       4. 组装输出 dict
@@ -167,17 +169,28 @@ def classify_run(data):
     history = data.get("steps") or []
     reason = data.get("reason", "")
     states = build_states(history)
-    loc = locate(states)
-    # locate 是"最终判分"的唯一来源：
-    #   None -> 一次没测；{} -> 最终全过；{test: step} -> 最终还有红
-    # 这里把它压成三态 Python 值，是为了后面能区分"没测"(None) 和
-    # "测了且全过"([])——两者一旦混成一个 falsy 判断，no_verify 就永远抓不到。
-    if loc is None:
-        final = None
-    elif loc == {}:
-        final = []
+
+    # 最终判分优先用 trace 里显式记录的完整判据（real_runs 跑完后写入）。
+    # steps 里的 test_state 可能来自快速判据，Django 这类任务会少报红测试；
+    # 旧 trace 没有 final_test_state，才退回 locate(steps)。
+    if "final_test_state" in data:
+        final = data["final_test_state"]
+        if isinstance(final, str):
+            # CSV 回读时是 JSON 字符串
+            final = json.loads(final)
+        if final is not None:
+            final = sorted(final)
     else:
-        final = sorted(loc)
+        loc = locate(states)
+        # None -> 一次没测；{} -> 最终全过；{test: step} -> 最终还有红
+        # 压成三态是为了区分"没测"(None) 和 "测了且全过"([])，
+        # 两者混成一个 falsy 判断，no_verify 就永远抓不到。
+        if loc is None:
+            final = None
+        elif loc == {}:
+            final = []
+        else:
+            final = sorted(loc)
     bad = env_invalid_reason(history)   # 环境/工具异常原因；None = 环境有效
     touched = writes_to_tests(history)  # 有没有写操作碰过 tests/（改判据 = 违规）
     reg = regressions(states)           # {步号: [这步新变红的测试]}；看过程，不看最终态

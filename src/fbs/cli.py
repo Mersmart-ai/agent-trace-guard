@@ -19,6 +19,18 @@ from fbs.agent.policy import model_policy
 from fbs.data.trace import check_trace, prepare_workspace, save_run
 from fbs.llm import OutOfCredit
 
+# meta.json 里允许透传给 agent_loop 的键。
+# 漏一个就会出现“real_runs 跑得对、python run.py 跑得不对”的两套行为。
+OPT_KEYS = (
+    "python", "visible_command", "judge_command", "fast_judge_command",
+    "judge_timeout", "fast_judge_timeout", "visible_timeout", "max_turns",
+)
+
+
+def opts_from_meta(meta):
+    """从 meta.json 取出 agent_loop 需要的配置；空值不传。"""
+    return {key: meta[key] for key in OPT_KEYS if meta.get(key)}
+
 
 def main():
     # 只跑一个任务：填相对路径，比如 "tasks/boltons_0002"
@@ -63,19 +75,16 @@ def main():
         if judge_tests:
             print(f"   隐藏测试已启用：{len(list(hidden.glob('test_*.py')))} 个文件")
 
-        # meta.json 里可以指定解释器和测试命令（django 这类不用 pytest 的项目）
-        opts = {}
+        # meta.json 里可以指定解释器、测试命令、judge 超时和轮数
         meta = {}
         meta_file = task / "meta.json"
         if meta_file.exists():
             meta = json.loads(meta_file.read_text(encoding="utf-8"))
-            for k in ("python", "visible_command", "judge_command"):
-                if meta.get(k):
-                    opts[k] = meta[k]
-            if opts.get("judge_command"):
-                judge_tests = None      # 用命令判据，就不用目录了
-            if opts:
-                print(f"   自定义测试配置：{sorted(opts)}")
+        opts = opts_from_meta(meta)
+        if opts.get("judge_command"):
+            judge_tests = None          # 用命令判据，就不用目录了
+        if opts:
+            print(f"   自定义测试配置：{sorted(opts)}")
 
         rounds = meta.get("rounds")   # ["round1", "round2"] 这样的目录名
 

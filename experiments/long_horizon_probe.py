@@ -92,7 +92,7 @@ def deviation_ok(name, trace, onset):
     if name in ("skip_verify", "skip_final_verify"):
         return True
     if name == "regression":
-        return any(r["delta_fails"] > 0 for r in post)
+        return any(r["new_red"] for r in post)
     if name in ("loop_read", "repeat_write"):
         return any(r["is_dup"] for r in post)
     return False

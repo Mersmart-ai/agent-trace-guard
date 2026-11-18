@@ -7,12 +7,12 @@ from fbs.analysis.monitor import rule_alarms, strict_alarms
 ARCHIVE = Path(__file__).resolve().parents[1] / "data" / "raw_v1" / "run_traces"
 
 
-def _step(n, tool, args=None, ok=True, test_state=None, judge=None):
+def _step(n, tool, args=None, ok=True, test_state=None, judge=None, result=None):
     return {
         "step": n,
         "tool": tool,
         "args": args or {},
-        "result": {},
+        "result": result if result is not None else {},
         "ok": ok,
         "test_state": test_state,
         "judge": judge,
@@ -45,6 +45,16 @@ def test_delta():
         _step(1, "read_file", {"path": "a.py"}),
         _step(2, "write_file", {"path": "a.py", "content": "x"}, test_state=[]),
         _step(3, "write_file", {"path": "a.py", "content": "y"}, test_state=["t"]),
+    ]
+    names = [a["rule"] for a in rule_alarms(history)]
+    assert "delta" in names
+
+
+def test_delta_same_count_replacement():
+    """修好 a、弄坏 b：数量不变，但 b 是新红的。"""
+    history = [
+        _step(1, "run_tests", test_state=["a"]),
+        _step(2, "run_tests", test_state=["b"]),
     ]
     names = [a["rule"] for a in rule_alarms(history)]
     assert "delta" in names
@@ -112,6 +122,34 @@ def test_blind_terminal_task_does_not_fire():
         _step(2, "bash", {"command": "echo x > a.py"}, test_state=[]),
     ]
     names = [a["rule"] for a in rule_alarms(history)]
+    assert "blind" not in names
+
+
+def test_blind_per_file_not_global():
+    """读了 a.py 不代表可以盲写 b.py。"""
+    history = [
+        _step(1, "read_file", {"path": "a.py"}),
+        _step(2, "write_file", {"path": "b.py", "content": "x"}, test_state=[]),
+    ]
+    names = [a["rule"] for a in rule_alarms(history)]
+    assert "blind" in names
+
+
+def test_blind_new_file_skipped():
+    """write_file 先报“文件不存在”，说明是新建文件，不算盲写。"""
+    history = [
+        _step(1, "write_file", {"path": "new.py", "content": "x"},
+              ok=False, result="【错误】：该文件不存在，可用文件：a.py",
+              test_state=[]),
+        _step(2, "write_file", {"path": "new.py", "content": "x"}, test_state=[]),
+    ]
+    names = [a["rule"] for a in rule_alarms(history)]
+    assert "blind" not in names
+
+
+def test_blind_real_terminal_trace_no_false_positive():
+    trace = json.loads((ARCHIVE / "tb_regex_log" / "r01.json").read_text(encoding="utf-8"))
+    names = [a["rule"] for a in rule_alarms(trace["steps"])]
     assert "blind" not in names
 
 

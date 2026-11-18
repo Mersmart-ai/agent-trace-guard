@@ -27,6 +27,7 @@ from experiments.signal_probe import (
 )
 from experiments.task_split_eval import score_trace
 from fbs.analysis.features import step_features
+from fbs.analysis.monitor import STRICT_RULES, rule_alarms
 
 QS = [0.90, 0.95]
 N_FOLDS = 5
@@ -42,27 +43,40 @@ def make_calibrator(cal_traces, q):
 
 
 def static_rules(trace):
-    rows = step_features(trace)[:T_MAX]
-    no_verify = max(r["n_verify"] for r in rows) == 0
-    delta = any(r["delta_fails"] > 0 for r in rows)
-    dup = any(r["is_dup"] for r in rows)
-    dup2 = any(r["repeat_streak"] >= 2 for r in rows)
-    error = any(not r["ok"] for r in rows)
-    first_write = next((r for r in rows if r["kind"] == "write"), None)
-    # 只对代码任务生效：终端任务用 bash 读写，本来就不会有 read_file
-    blind = (first_write is not None
-             and first_write["tool"] == "write_file"
-             and first_write["n_read_file"] == 0)
+    """实验版规则基线：直接复用正式 monitor，避免两套规则分叉。
+
+    仍然只看前 T_MAX 步，保持和历史实验的窗口一致。
+    `dup` 不是正式规则，保留给旧的 cv 输出。
+
+    注意：窗口截断后，末尾的 unverified_write 可能只是“后面还有测试没看到”；
+    完整 trace 的监控请直接用 monitor.rule_alarms。
+    """
+    steps = (trace.get("steps") or [])[:T_MAX]
+    alarms = rule_alarms(steps)
+    hit = {alarm["rule"] for alarm in alarms}
+    rows = step_features({"steps": steps})
+
+    no_verify = "no_verify" in hit
+    delta = "delta" in hit
+    dup2 = "dup2" in hit
+    error = "error" in hit
+    blind = "blind" in hit
+    strict = bool(hit & set(STRICT_RULES))
     return {
         "no_verify": no_verify,
         "delta": delta,
-        "dup": dup,
+        "dup": any(r["is_dup"] for r in rows),
         "dup2": dup2,
         "error": error,
+        "long_gap": "long_gap" in hit,
+        "unverified_write": "unverified_write" in hit,
         "blind": blind,
+        "strict": strict,
+        "full": bool(hit),
+        # 兼容旧输出
         "tier1": no_verify or delta,
         "tier1_dup2": no_verify or delta or dup2,
-        "tier_all": no_verify or delta or dup2 or error or blind,
+        "tier_all": bool(hit),
     }
 
 
@@ -107,7 +121,9 @@ def main():
 
     # 简单规则：不需要校准
     print("=== 简单规则（无需校准） ===")
-    for rule in ("no_verify", "delta", "dup", "dup2", "tier1", "tier1_dup2"):
+    for rule in ("no_verify", "delta", "dup", "dup2", "error",
+                 "long_gap", "unverified_write", "blind",
+                 "tier1", "tier1_dup2", "strict", "full"):
         clean_hits = sum(1 for t in test if static_rules(t)[rule])
         print(f"{rule:12} clean 误报={clean_hits}/{len(test)} = {clean_hits / len(test):.1%}")
         for variant_name in VARIANTS:

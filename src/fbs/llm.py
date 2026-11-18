@@ -31,13 +31,15 @@ BACKENDS = {
     },
 }
 
-# 用哪个后端。默认 dashscope（因为现在要测 7B）。
-# 想换回来：FBS_BACKEND=deepseek python run.py
+# 用哪个后端。默认 deepseek。
+# 换后端：FBS_BACKEND=dashscope python run.py
 BACKEND = os.environ.get("FBS_BACKEND", "deepseek")
 
-# 用哪个模型。不给就用后端自己的默认值。
+# 用哪个模型。不设置就用后端自己的默认值：
+#   deepseek  -> deepseek-flash
+#   dashscope -> qwen3.8-flash
 # 换模型：FBS_MODEL=qwen-plus python run.py
-MODEL = os.environ.get("FBS_MODEL", "deepseek-chat")
+MODEL = os.environ.get("FBS_MODEL")
 
 # 每次 API 调用的 token 用量，供批量脚本统计成本
 USAGE = []
@@ -63,7 +65,8 @@ def _client():
 
 def call_model(messages, tools=None, model=None, thinking_off=False):
     client, cfg = _client()
-    kwargs = dict(model=model or MODEL, messages=messages, temperature=0, tools=tools)
+    model_name = model or MODEL or cfg["model"]
+    kwargs = dict(model=model_name, messages=messages, temperature=0, tools=tools)
 
     if thinking_off and cfg["thinking_body"]:
         # 思考模式下 API 要求把上一轮的 reasoning_content 原样回传，
@@ -89,5 +92,5 @@ def call_model(messages, tools=None, model=None, thinking_off=False):
 
 
 if __name__ == "__main__":
-    print(f"后端: {BACKEND}   模型: {MODEL}")
+    print(f"后端: {BACKEND}   模型: {MODEL or BACKENDS.get(BACKEND, {}).get('model')}")
     print(call_model([{"role": "user", "content": "只回复 OK"}]).content)

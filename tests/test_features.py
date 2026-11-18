@@ -87,25 +87,30 @@ def test_step_features_tracks_state_and_gaps():
     rows = step_features(_step_trace())
     assert rows == [
         {"step": 1, "tool": "read_file", "kind": "read", "ok": True,
-         "tested": False, "fails": 0, "delta_fails": 0,
-         "since_test": 1, "since_write": 1, "n_verify": 0, "n_inspect": 1, "n_read_file": 1, "result_len": 0,
+         "tested": False, "fails": 0, "delta_fails": 0, "new_red": [],
+         "since_test": 1, "since_write": 1, "n_verify": 0, "n_inspect": 1, "n_read_file": 1,
+         "result_len": 0, "path": None, "path_missing": False,
          "is_dup": False, "repeat_streak": 0, "prev_kind": None},
         {"step": 2, "tool": "write_file", "kind": "write", "ok": True,
-         "tested": True, "fails": 1, "delta_fails": 0,
-         "since_test": 2, "since_write": 0, "n_verify": 0, "n_inspect": 1, "n_read_file": 1, "result_len": 0,
+         "tested": True, "fails": 1, "delta_fails": 0, "new_red": [],
+         "since_test": 2, "since_write": 0, "n_verify": 0, "n_inspect": 1, "n_read_file": 1,
+         "result_len": 0, "path": None, "path_missing": False,
          "is_dup": False, "repeat_streak": 0, "prev_kind": "read"},
         {"step": 3, "tool": "run_tests", "kind": "verify", "ok": True,
-         "tested": True, "fails": 1, "delta_fails": 0,
-         "since_test": 0, "since_write": 1, "n_verify": 1, "n_inspect": 1, "n_read_file": 1, "result_len": 0,
+         "tested": True, "fails": 1, "delta_fails": 0, "new_red": [],
+         "since_test": 0, "since_write": 1, "n_verify": 1, "n_inspect": 1, "n_read_file": 1,
+         "result_len": 0, "path": None, "path_missing": False,
          "is_dup": False, "repeat_streak": 0, "prev_kind": "write"},
         # 和第 2 步同一个动作（write_file + 空 args），但不是连续重复
         {"step": 4, "tool": "write_file", "kind": "write", "ok": False,
-         "tested": True, "fails": 0, "delta_fails": -1,
-         "since_test": 1, "since_write": 0, "n_verify": 1, "n_inspect": 1, "n_read_file": 1, "result_len": 0,
+         "tested": True, "fails": 0, "delta_fails": -1, "new_red": [],
+         "since_test": 1, "since_write": 0, "n_verify": 1, "n_inspect": 1, "n_read_file": 1,
+         "result_len": 0, "path": None, "path_missing": False,
          "is_dup": True, "repeat_streak": 0, "prev_kind": "verify"},
         {"step": 5, "tool": "finish", "kind": "other", "ok": True,
-         "tested": False, "fails": 0, "delta_fails": 0,
-         "since_test": 2, "since_write": 1, "n_verify": 1, "n_inspect": 1, "n_read_file": 1, "result_len": 0,
+         "tested": False, "fails": 0, "delta_fails": 0, "new_red": [],
+         "since_test": 2, "since_write": 1, "n_verify": 1, "n_inspect": 1, "n_read_file": 1,
+         "result_len": 0, "path": None, "path_missing": False,
          "is_dup": False, "repeat_streak": 0, "prev_kind": "write"},
     ]
 
@@ -120,6 +125,32 @@ def test_step_features_resets_delta_on_judge_change():
     ]}
     rows = step_features(trace)
     assert rows[1]["delta_fails"] == 0
+    assert rows[1]["new_red"] == []
+
+
+def test_step_features_new_red_when_count_unchanged():
+    """修好 a、弄坏 b：数量没变，但 b 是新红的。"""
+    trace = {"steps": [
+        {"step": 1, "tool": "run_tests", "ok": True,
+         "test_state": ["a"], "judge": "j1"},
+        {"step": 2, "tool": "run_tests", "ok": True,
+         "test_state": ["b"], "judge": "j1"},
+    ]}
+    rows = step_features(trace)
+    assert rows[1]["delta_fails"] == 0
+    assert rows[1]["new_red"] == ["b"]
+
+
+def test_step_features_marks_missing_write_path():
+    trace = {"steps": [
+        {"step": 1, "tool": "write_file", "ok": False,
+         "args": {"path": "new.py"},
+         "result": "【错误】：该文件不存在，可用文件：a.py",
+         "test_state": []},
+    ]}
+    row = step_features(trace)[0]
+    assert row["path"] == "new.py"
+    assert row["path_missing"] is True
 
 
 def test_step_features_on_real_clean_trace():

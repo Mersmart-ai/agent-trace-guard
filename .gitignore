@@ -19,3 +19,9 @@ tasks/django_16820/src/
 
 # 临时验证目录
 _verify_clone/
+
+# dsh 实验工作区：生成的代码副本、pytest/uv 缓存，不进版本库
+experiments/dsh_workspace/
+
+# dsh 事件与干预日志：本地产物，开源前单独筛选
+data/dsh/

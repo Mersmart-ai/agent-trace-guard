@@ -20,7 +20,7 @@
 | `error` | 任意一步工具调用失败 |
 | `long_gap` | 任意一步 `since_test > 15`（太久没显式测试） |
 | `unverified_write` | 最后一次写之后没有 `run_tests` |
-| `blind` | 第一次写是 `write_file` 且没读过文件（终端任务不适用） |
+| `blind` | 任意一次 `write_file` 的目标文件，写之前没读过（新建文件除外） |
 
 - **strict** = `no_verify + delta + dup2 + error + long_gap + unverified_write`
 - **full** = strict + `blind`
