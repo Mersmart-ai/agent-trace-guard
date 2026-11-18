@@ -48,9 +48,12 @@ PYTEST_CMD = re.compile(r"(?<![\w-])pytest(?:\.exe)?\s+(?:-{1,2}\w|tests?\b)")
 PYTEST_INFO = re.compile(r"pytest(?:\.exe)?\s+(?:--version|--help|-h|--collect-only)\b")
 PS_REDIRECT = re.compile(r"(?<![\d&])>{1,2}(?!&)")
 EXIT_CODE = re.compile(r"\[\s*exit code:\s*(-?\d+)\s*\]")
-FAILED_LINE = re.compile(r"^(?:FAILED|ERROR)\s+(\S+)")
+# pytest 的 FAILED nodeid；排除 unittest 汇总行 "FAILED (failures=1)"
+FAILED_LINE = re.compile(r"^(?:FAILED|ERROR)\s+([^\s(]\S*)")
+UNITTEST_FAILED = re.compile(r"^(?:FAIL|ERROR):\s+(\S+)\s+\((.+)\)\s*$")
 PASSED_COUNT = re.compile(r"\b\d+ passed\b")
 FAILED_COUNT = re.compile(r"\b\d+ (?:failed|errors?)\b")
+UNITTEST_OK = re.compile(r"^OK\b", re.MULTILINE)
 
 
 def load_events(path):
@@ -108,11 +111,24 @@ def parse_test_state(text, exit_code=None):
 
     names = set()
     for line in text.splitlines():
-        match = FAILED_LINE.match(line.strip())
+        stripped = line.strip()
+        match = FAILED_LINE.match(stripped)
         if match:
             names.add(match.group(1).split(" - ")[0].split("::")[-1])
+            continue
+        # Django / unittest: FAIL: test_x (module.Class.test_x) 或 (module.Class)
+        match = UNITTEST_FAILED.match(stripped)
+        if match:
+            test_name, where = match.group(1), match.group(2)
+            if not where.endswith("." + test_name) and where != test_name:
+                where = f"{where}.{test_name}"
+            names.add(where)
     if names:
         return sorted(names)
+
+    # Django / unittest 成功摘要：Ran N tests + OK / OK (skipped=2)
+    if "Ran " in text and UNITTEST_OK.search(text):
+        return []
 
     # PowerShell 的 NativeCommandError 会让成功的 pytest 也 exit 1，
     # 所以有 "N passed" 且没有失败计数时，先信输出。
@@ -126,7 +142,7 @@ def parse_test_state(text, exit_code=None):
 
 
 def is_test_command(command):
-    """是不是真的在跑 pytest（而不是查找、看版本或只看 collection）。"""
+    """是不是真的在跑测试（pytest / Django runtests / unittest）。"""
     for seg in re.split(r"\|\||&&|[|;]", command):
         words = seg.strip().split()
         # Get-Command python,py,pytest 这类查找命令里 pytest 只是参数
@@ -134,6 +150,9 @@ def is_test_command(command):
             continue
         if PYTEST_INFO.search(seg):
             continue
+        # Django 的 tests/runtests.py、manage.py test、unittest 也算验证
+        if "runtests.py" in seg or "manage.py test" in seg or "-m unittest" in seg:
+            return True
         if "-m pytest" in seg or PYTEST_CMD.search(seg):
             return True
     return False

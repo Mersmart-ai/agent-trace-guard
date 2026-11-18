@@ -146,7 +146,18 @@
 - 修复后的 guard 口径：`maxSteers=2`、`strictPaths` 触发
   `forbidden_write`、`blind` 只认 `read_file`（`grep` 不算）。
 
-## 3. 已发现的缺口（2026-11-18 已修 1–3、5、8；6–7 未修）
+### 2.5 Django 同一任务对照（长程）
+
+详见 `reports/dsh_django_probe.md`。
+
+- 自研 harness：r01 30 步、r02 60 步，0 次写，最终 7 条红；
+- dsh shadow：**43 步、2 次写、4 次测试、217/217 OK**；
+- 只改了 `models.py`，`tests/` 没动；
+- 监控在成功 trace 上仍抓到 `long_gap`（第 14 步测试后 25 步才再测）
+  和一次 `web_fetch` 错误；
+- 只有 1 个 seed；Django 上的 guard A/B 还没做。
+
+## 3. 已发现的缺口（2026-11-18 已修 1–3、5、8–9；6–7 未修）
 
 1. **dsh 的 `isError` 不够** ✅
    - `python -m pytest` 实际 exit 1（No module named pytest），但 `isError=false`
@@ -203,18 +214,26 @@
    - 已修：`read` 步骤同时写入 `args["path"]`；加了 read→edit 不报
      `blind` 的单测
 
+9. **adapter 不认 Django 的测试命令** ✅
+   - 只认 pytest，把 `tests/runtests.py` 当成普通 bash，导致
+     `no_verify` / `unverified_write` / `long_gap` 误报
+   - 已修：识别 `tests/runtests.py` / `manage.py test` / `-m unittest`，
+     解析 Django 的 `OK` / `Ran N tests` / `FAIL:` 输出；加了单测
+
 ## 4. 下一步
 
 1. ~~修 `experiments/dsh_adapter.py`~~（2026-11-18 完成）
-2. ~~给 adapter 补测试~~（`tests/test_dsh_adapter.py`，15 条；全套 63 passed）
+2. ~~给 adapter 补测试~~（全套 77 passed）
 3. ~~再跑一个更难的任务~~（boltons_0002 完成，见 2.2）
 4. ~~在线干预~~（turn-stopping guard 完成，见 2.3）
 5. ~~干预 A/B~~（task_0006 完成：机制有效、结果无提升、+3 步）
 6. ~~描述不全的 boltons probe~~（1 个正结果，见 2.4）
-7. 至少 2–3 个 seed 复现；优先自然长任务；记录 token/成本
-8. ~~决定 guard 口径~~（`maxSteers=2`、`strictPaths`/`forbidden_write`、
-   `blind` 只算 `read_file`）
-9. 给 monitor 补 `no_case` 规则（见 3.7）
+7. ~~Django 同任务运行时对照~~（dsh 43 步、217/217，见 2.5）
+8. Django 上做 `shadow` vs `guard` A/B；预算 2–4 元
+9. 至少 2–3 个 seed 复现；记录 token/成本
+10. ~~决定 guard 口径~~（`maxSteers=2`、`strictPaths`/`forbidden_write`、
+    `blind` 只算 `read_file`）
+11. 给 monitor 补 `no_case` 规则（见 3.7）
 
 ## 5. 当前运行状态
 

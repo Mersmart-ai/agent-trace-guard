@@ -5,7 +5,8 @@ Process-conformance monitoring for coding agents.
 > 当前状态：**pilot / rules-only + dsh 集成**。统计模型（Fisher）没有证明稳定的
 > 增量价值，正式监控器采用可解释的过程规则；已把监控和 turn-stopping 干预接到
 > DeepSeek Harness。小任务上干预不改变结果；描述不全的 boltons 探针有 1 个
-> 正结果（单 seed）。实验与负结果见 `reports/`。
+> 正结果（单 seed）；同一 Django 长任务上 dsh 43 步完成，自研 harness
+> 30/60 步失败。实验与负结果见 `reports/`。
 
 ## 这是什么
 
@@ -89,7 +90,9 @@ alarms = rule_alarms(trace["steps"])
   `guard` 在 agent 想结束时检查“最后一次写之后有没有测试”，没有就 steer；
 - 结果与缺口：`reports/dsh_integration_status.md`；
 - 描述不全的 boltons 探针（第一例正结果）：
-  `reports/dsh_intervention_probe.md`。
+  `reports/dsh_intervention_probe.md`；
+- 同一 Django 长任务（2746 个文件）：自研 harness 30/60 步失败，
+  dsh 43 步、2 次写、**217/217 通过**；见 `reports/dsh_django_probe.md`。
 
 ## 数据
 
@@ -107,6 +110,8 @@ alarms = rule_alarms(trace["steps"])
 - [x] 规则监控（`analysis/monitor.py`）
 - [ ] 正常模型 + conformal（Fisher 未证明增量价值，暂不进入主线）
 - [x] 长程运行时干预：dsh turn-stopping（单 seed 正结果，见 `reports/dsh_intervention_probe.md`）
+- [x] 同一 Django 长任务的运行时对照（dsh 43 步完成，自研 30/60 步失败）
+- [ ] Django 上的 `shadow` vs `guard` A/B
 - [ ] 自然长任务的 2–3 seed 复现
 - [ ] 评估与论文/简历材料
 

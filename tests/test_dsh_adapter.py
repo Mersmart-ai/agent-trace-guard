@@ -86,6 +86,35 @@ def test_is_test_command():
     assert not is_test_command("Get-Command python, python3, pytest, py")
 
 
+def test_is_test_command_django_runtests():
+    assert is_test_command(
+        '& "C:/Python/python.exe" tests/runtests.py --parallel 1 migrations.test_optimizer'
+    )
+    assert is_test_command("python manage.py test app")
+    assert is_test_command("python -m unittest discover")
+
+
+def test_test_state_django_ok():
+    text = "Ran 217 tests in 0.1s\n\nOK (skipped=2)\n"
+    assert parse_test_state(text, 0) == []
+
+
+def test_test_state_django_failed():
+    text = (
+        "FAIL: test_create_model_add_index "
+        "(migrations.test_optimizer.OptimizerTests.test_create_model_add_index)\n"
+        "Ran 5 tests in 0.01s\n\nFAILED (failures=1)\n"
+    )
+    assert parse_test_state(text, 1) == [
+        "migrations.test_optimizer.OptimizerTests.test_create_model_add_index"
+    ]
+
+
+def test_test_state_django_failed_class_only():
+    text = "FAIL: test_x (module.Class)\nRan 1 test\nFAILED (failures=1)\n"
+    assert parse_test_state(text, 1) == ["module.Class.test_x"]
+
+
 def test_is_test_command_ignores_version_help_and_collect():
     assert not is_test_command("py -m pytest --version 2>&1")
     assert not is_test_command("pytest --help")
