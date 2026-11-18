@@ -3,7 +3,7 @@
 - 日期：2026-11-17
 - 成本：0 元（只读评估）
 - 代码：`src/fbs/analysis/monitor.py`
-- 脚本：`experiments/final_eval.py`
+- 脚本：`experiments/eval/final_eval.py`
 - 数据：
   - `data/raw_v1`：80 条归档 trace
   - `data/traces/real`：23 条真实模型 trace（含 2 条 Django）

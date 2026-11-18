@@ -2,7 +2,7 @@
 
 - 日期：2026-11-18
 - 成本：2 次 dsh headless 运行（未记录 token，以账单为准）
-- 脚本：`experiments/dsh_adapter.py`、`integrations/dsh-intervene/`
+- 脚本：`experiments/dsh/dsh_adapter.py`、`integrations/dsh-intervene/`
 - 目的：验证“结束时强制验证”能否阻止一次会交红的提交
 
 ## 1. 任务设计

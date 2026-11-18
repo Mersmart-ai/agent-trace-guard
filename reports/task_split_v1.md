@@ -2,9 +2,9 @@
 
 - 日期：2026-11-15
 - 成本：0 元，不调用模型
-- 脚本：`experiments/task_split_eval.py`
+- 脚本：`experiments/calibration/task_split_eval.py`
 - 切分文件：`experiments/splits/task_split_v1.json`
-- 复现：`.venv/Scripts/python.exe experiments/task_split_eval.py`
+- 复现：`.venv/Scripts/python.exe experiments/calibration/task_split_eval.py`
 
 ## 1. 切分
 

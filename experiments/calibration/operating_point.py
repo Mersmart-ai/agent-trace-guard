@@ -11,18 +11,18 @@
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT))
 
-from experiments.scripted_negatives import (
+from experiments.negatives.scripted_negatives import (
     T_MAX, VARIANTS, actions_of, deviation_happened, final_ok, run_task,
 )
-from experiments.signal_probe import (
+from experiments.calibration.signal_probe import (
     FEATURES, MIN_POOL, build_pool, build_rows, clean_scores_by_trace,
     emp_p, fisher, load_clean, percentile,
 )
-from experiments.task_split_eval import DEFAULT_SEED, split_tasks, score_trace
+from experiments.calibration.task_split_eval import DEFAULT_SEED, split_tasks, score_trace
 
 QUANTILES = [0.90, 0.95, 0.975, 0.99]
 

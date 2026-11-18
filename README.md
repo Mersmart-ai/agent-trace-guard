@@ -1,6 +1,9 @@
-# first-bad-step
+# agent-trace-guard
 
-Process-conformance monitoring for coding agents.
+Process-conformance monitoring and turn-stopping intervention for coding agents.
+
+> Python 包名 `fbs` 是早期原型名（first-bad-step）的遗留；仓库现名
+> `agent-trace-guard`。
 
 > 当前状态：**pilot / rules-only + dsh 集成**。统计模型（Fisher）没有证明稳定的
 > 增量价值，正式监控器采用可解释的过程规则；已把监控和 turn-stopping 干预接到
@@ -20,7 +23,8 @@ Process-conformance monitoring for coding agents.
 
 ## 这是什么
 
-- 一个 agent harness：让模型在隔离工作区里读/改代码、跑测试，并记录每一步。
+- 一个 dsh 集成层：事件适配器 + observe / turn-stopping 插件。
+- 一个最小自研 harness：用于受控 trace 和脚本化故障注入。
 - 一个数据审计层：从 trace 里标出健康成功、环境异常、失败和作弊样本。
 - 一个规则监控器：判断过程偏离（不验证、回退、打转、工具错误、盲写）。
 
@@ -46,7 +50,12 @@ tasks/                  # 题库
 docs/                   # 预注册、日志、文献
 scripts/                # 开发脚本
 integrations/           # dsh 插件：observe / turn-stopping guard
-experiments/            # 零成本实验、dsh_adapter.py
+experiments/
+├── calibration/        # 校准、Fisher、切分
+├── negatives/          # 故障注入、留出异常
+├── eval/               # 最终评估、真实运行
+├── dsh/                # dsh adapter
+└── splits/             # 冻结切分
 ```
 
 ## Code map
@@ -104,7 +113,7 @@ alarms = rule_alarms(trace["steps"])
 
 把监控层接到 DeepSeek Harness（dsh），不依赖本项目较弱的 harness：
 
-- `experiments/dsh_adapter.py`：把 dsh 的 JSONL 事件映射成我们的 step history；
+- `experiments/dsh/dsh_adapter.py`：把 dsh 的 JSONL 事件映射成我们的 step history；
 - `integrations/dsh-monitor/`：observe-only 插件，只写事件日志，不改变行为；
 - `integrations/dsh-intervene/`：turn-stopping guard；`shadow` 只记录，
   `guard` 在 agent 想结束时检查“最后一次写之后有没有测试”，没有就 steer；

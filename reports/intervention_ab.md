@@ -3,7 +3,7 @@
 - 日期：2026-11-15
 - 模型：`deepseek-flash`
 - 成本：约 15 万 token，预计 1–2 元
-- 脚本：`experiments/intervention_ab.py`
+- 脚本：`experiments/negatives/intervention_ab.py`
 - trace：`data/traces/intervention/`（不进 Git）
 
 ## 1. 设计

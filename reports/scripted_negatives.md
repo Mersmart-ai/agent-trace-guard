@@ -2,8 +2,8 @@
 
 - 日期：2026-11-15
 - 成本：0 元，不调用模型
-- 脚本：`experiments/scripted_negatives.py`
-- 复现：`.venv/Scripts/python.exe experiments/scripted_negatives.py`
+- 脚本：`experiments/negatives/scripted_negatives.py`
+- 复现：`.venv/Scripts/python.exe experiments/negatives/scripted_negatives.py`
 
 ## 1. 为什么做这个
 

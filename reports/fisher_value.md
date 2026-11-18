@@ -2,7 +2,7 @@
 
 - 日期：2026-11-17
 - 成本：0 元，不调用模型
-- 脚本：`experiments/fisher_value_probe.py`
+- 脚本：`experiments/calibration/fisher_value_probe.py`
 - 切分：`experiments/splits/task_split_v1.json`
 
 ## 1. 严格标准

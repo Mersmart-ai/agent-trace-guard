@@ -3,8 +3,8 @@
 - 日期：2026-11-14
 - 数据：`data/raw_v1/`（80 条，56 条 `clean_success`）
 - 成本：0 元，不调用模型
-- 脚本：`experiments/signal_probe.py`
-- 复现：`PYTHONPATH=src python experiments/signal_probe.py`
+- 脚本：`experiments/calibration/signal_probe.py`
+- 复现：`PYTHONPATH=src python experiments/calibration/signal_probe.py`
 
 ## 1. 为什么先做这个
 

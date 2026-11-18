@@ -2,7 +2,7 @@
 
 - 日期：2026-11-15
 - 成本：0 元，不调用模型
-- 脚本：`experiments/cv_calibration.py`
+- 脚本：`experiments/calibration/cv_calibration.py`
 - 测试集：`experiments/splits/task_split_v1.json`（15 个留出任务）
 
 ## 1. 为什么要试规则

@@ -12,18 +12,18 @@ import json
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT))
 
 from fbs.analysis.features import step_features
 from fbs.analysis.monitor import STRICT_RULES, rule_alarms
-from experiments.cv_calibration import make_calibrator
-from experiments.scripted_negatives import (
+from experiments.calibration.cv_calibration import make_calibrator
+from experiments.negatives.scripted_negatives import (
     T_MAX, VARIANTS as BASE_VARIANTS, actions_of, final_ok, run_task,
 )
-from experiments.signal_probe import build_rows, fisher, load_clean
-from experiments.task_split_eval import score_trace
+from experiments.calibration.signal_probe import build_rows, fisher, load_clean
+from experiments.calibration.task_split_eval import score_trace
 
 MIN_STEPS = 10
 FINISH = {"tool": "finish", "args": {}}

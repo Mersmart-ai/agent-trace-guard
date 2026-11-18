@@ -24,7 +24,7 @@ from pathlib import Path
 
 # 允许直接 `python experiments/signal_probe.py` 运行：
 # 把项目根目录下的 src/ 加进 import 路径，不依赖 PYTHONPATH
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 
 from fbs.actions import tool_kind

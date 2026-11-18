@@ -23,7 +23,7 @@ import tempfile
 from datetime import datetime
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT))
 
@@ -31,7 +31,7 @@ from fbs.agent.loop import agent_loop
 from fbs.data.trace import prepare_workspace
 from fbs.legacy.locate import build_states, locate
 
-from experiments.signal_probe import (
+from experiments.calibration.signal_probe import (
     FEATURES, build_pool, build_rows, clean_scores_by_trace,
     fisher, load_clean, percentile,
 )

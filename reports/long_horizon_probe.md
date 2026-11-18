@@ -2,7 +2,7 @@
 
 - 日期：2026-11-17
 - 成本：0 元，不调用模型
-- 脚本：`experiments/long_horizon_probe.py`
+- 脚本：`experiments/negatives/long_horizon_probe.py`
 - 长程定义：>=10 步的单轮 clean trace
 
 ## 1. 数据

@@ -2,7 +2,7 @@
 
 - 日期：2026-11-15
 - 成本：0 元，不调用模型
-- 脚本：`experiments/operating_point.py`、`experiments/task_split_eval.py`
+- 脚本：`experiments/calibration/operating_point.py`、`experiments/calibration/task_split_eval.py`
 - 改动：`step_features` 新增 `n_verify`（到当前步为止调用了几次 `run_tests`）
 
 ## 1. 为什么扫工作点

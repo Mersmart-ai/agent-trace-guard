@@ -8,7 +8,7 @@ sys.path.insert(0, str(ROOT))
 
 from fbs.agent.judge import NO_CASE
 from fbs.analysis.monitor import rule_alarms
-from experiments.dsh_adapter import (
+from experiments.dsh.dsh_adapter import (
     is_pwsh_write,
     is_test_command,
     map_history,

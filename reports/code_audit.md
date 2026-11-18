@@ -19,7 +19,7 @@
 ### P0-1 规则逻辑两份且已分叉
 
 - 正式版：`src/fbs/analysis/monitor.py:19`，包含 `long_gap`、`unverified_write`
-- 实验版：`experiments/cv_calibration.py:44 static_rules`，**没有**这两条
+- 实验版：`experiments/calibration/cv_calibration.py:44 static_rules`，**没有**这两条
 - `heldout_anomalies.py`、`cv_calibration.py` 的规则基线是旧的
 - 后果：报告里“规则 vs Fisher”和正式 monitor 不是同一套规则
 - 修改方向：`static_rules` 直接调用 `monitor.rule_alarms`，删掉重复实现
@@ -37,7 +37,7 @@
 - `src/fbs/cli.py:72` 只拷贝 `python / visible_command / judge_command`
 - 没有 `fast_judge_command / judge_timeout / fast_judge_timeout / visible_timeout / max_turns`
 - 后果：`python run.py` 跑 Django 时每个 bash/write 都跑完整判据，10 秒超时
-- `experiments/real_runs.py` 是对的，两条入口行为不一致
+- `experiments/eval/real_runs.py` 是对的，两条入口行为不一致
 - 修改方向：`cli.py` 读取并透传这些 meta 键
 
 ### P0-4 `llm.py` 默认模型写错
@@ -50,7 +50,7 @@
 
 ### P0-5 最终判分有两个来源
 
-- `experiments/real_runs.py:149` 写入 `final_test_state`（完整判据）
+- `experiments/eval/real_runs.py:149` 写入 `final_test_state`（完整判据）
 - `src/fbs/data/audit.py:169` 只用 `steps` 里的 `test_state`
 - `src/fbs/analysis/monitor.py` 也只读 steps
 - Django r01：steps 最后一次快速判据 5 红，`final_test_state` 7 红

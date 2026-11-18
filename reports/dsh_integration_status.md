@@ -43,7 +43,7 @@
 
 ### 适配器
 
-- `experiments/dsh_adapter.py`
+- `experiments/dsh/dsh_adapter.py`
 - 功能：
   - 读取 dsh session JSONL
   - 取最新 session
@@ -53,9 +53,9 @@
   - 调用 `fbs.analysis.monitor.rule_alarms`
 - 用法：
   ```bash
-  .venv/Scripts/python.exe experiments/dsh_adapter.py data/dsh/events_web.jsonl
+  .venv/Scripts/python.exe experiments/dsh/dsh_adapter.py data/dsh/events_web.jsonl
   # 非测试步的退出码非 0 也算失败（对比实验用）：
-  .venv/Scripts/python.exe experiments/dsh_adapter.py data/dsh/events_web.jsonl --strict-exit
+  .venv/Scripts/python.exe experiments/dsh/dsh_adapter.py data/dsh/events_web.jsonl --strict-exit
   ```
 
 ## 2. 真实 dsh 运行结果
@@ -222,7 +222,7 @@
 
 ## 4. 下一步
 
-1. ~~修 `experiments/dsh_adapter.py`~~（2026-11-18 完成）
+1. ~~修 `experiments/dsh/dsh_adapter.py`~~（2026-11-18 完成）
 2. ~~给 adapter 补测试~~（全套 77 passed）
 3. ~~再跑一个更难的任务~~（boltons_0002 完成，见 2.2）
 4. ~~在线干预~~（turn-stopping guard 完成，见 2.3）

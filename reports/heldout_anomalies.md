@@ -2,7 +2,7 @@
 
 - 日期：2026-11-15（2026-11-18 按 P0-6 更新 `blind` 口径）
 - 成本：0 元，不调用模型
-- 脚本：`experiments/heldout_anomalies.py`
+- 脚本：`experiments/negatives/heldout_anomalies.py`
 - 目的：用没参与规则设计的异常类型，检验统计模型有没有增量价值
 
 ## 1. 两种新异常

@@ -3,7 +3,7 @@
 - 日期：2026-11-15
 - 模型：`deepseek-flash`（默认配置其实是 `deepseek-chat`，这轮显式指定了 flash）
 - 成本：约 20 万 token，预计不到 1 元（以 DeepSeek 账单为准）
-- 脚本：`experiments/real_runs.py`
+- 脚本：`experiments/eval/real_runs.py`
 - trace：`data/traces/real/`（不进 Git）
 
 ## 1. 运行了什么
