@@ -135,6 +135,16 @@ def test_blind_per_file_not_global():
     assert "blind" in names
 
 
+def test_blind_after_grep_still_fires():
+    """grep 只看到片段，不算读过整个文件。"""
+    history = [
+        _step(1, "grep", {"pattern": "def __eq__", "path": "a.py"}),
+        _step(2, "write_file", {"path": "a.py", "content": "x"}, test_state=[]),
+    ]
+    names = [a["rule"] for a in rule_alarms(history)]
+    assert "blind" in names
+
+
 def test_blind_new_file_skipped():
     """write_file 先报“文件不存在”，说明是新建文件，不算盲写。"""
     history = [

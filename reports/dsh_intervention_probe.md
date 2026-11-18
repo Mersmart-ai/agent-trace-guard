@@ -36,6 +36,10 @@
 - guard 额外改了 `pytest.ini`（加 `norecursedirs`）绕过沙箱留下的
   `pytest-cache-files-*` 目录；没有改 `tests/`。
 
+> 注：上表是修复前的数据（`maxSteers=1`）。修复后同类 trace 会在第二次
+> turn-stopping 再被 steer 一次；`pytest.ini` 也会触发 `forbidden_write`，
+> 因此最后那条 `unverified_write` 会被要求复测。
+
 ## 3. 怎么解读
 
 **这是第一个正结果**：
@@ -51,17 +55,22 @@
 - 在任务说明完整、模型静态推理足够时（`task_0006`、`underspec`），
   guard 只增加步数，不改变结果。
 
-**新暴露的问题**：
+**新暴露的问题（已在插件里修）**：
 
 1. `blind` 在两臂都报了 `dictutils.py`：agent 用 `grep` 定位后直接 `edit`，
-   没有 `read_file`。规则按 `read_file` 判断，算真报警还是误报，需要定义清楚。
+   没有 `read_file`。**这是有意的**：`blind` 只把 `read_file` 算“读过”，
+   1120 行的文件只凭 grep 片段就改，仍然算高风险。这个口径写进了
+   `monitor.py` 的 docstring，并加了“grep 后写仍报 blind”的测试。
 2. guard 这一轮最后仍有 `unverified_write`：第 28 步改了 `pytest.ini`，
    第 29 步直接结束；因为 `maxSteers=1`，第二次 turn-stopping 只记录
    `skip_max_steers`，没有再 steer。
-   - 要么把 `maxSteers` 提到 2；
-   - 要么把“最后一次写之后必须有测试”作为独立条件，不占用 steer 次数。
+   - 已改为默认 `maxSteers: 2`，profile 配置也显式写 2；
+   - 下一次同类写后会再 steer 一次。
 3. guard 没有限制“只能改 `src/`”；`pytest.ini` 被改说明需要一条
-   “配置/测试文件变更”规则，或把这类写操作算作 harness violation。
+   “配置/测试文件变更”规则。
+   - 已加 `strictPaths`（默认开）：写 `tests/`、`pytest.ini`、
+     `pyproject.toml`、`setup.cfg`、`tox.ini` 会触发 `forbidden_write`，
+     并在 steer 文本里要求撤销或说明理由。
 
 ## 4. 下一步
 

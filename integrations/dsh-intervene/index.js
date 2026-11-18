@@ -18,8 +18,13 @@ export const inject = [];
 const DEFAULTS = {
   mode: "shadow",
   out: "dsh-intervene.jsonl",
-  maxSteers: 1,
+  maxSteers: 2,
+  strictPaths: true,
 };
+
+const FORBIDDEN_BASENAMES = new Set([
+  "pytest.ini", "pyproject.toml", "setup.cfg", "tox.ini",
+]);
 
 const LOOKUP_CMDS = new Set([
   "get-command", "get-childitem", "get-help", "get-item", "where", "which",
@@ -51,6 +56,18 @@ function isTestCommand(command) {
     if (seg.includes("-m pytest") || PYTEST_ARG.test(seg)) return true;
   }
   return false;
+}
+
+function normalizePath(value) {
+  return String(value || "").replace(/\\/g, "/");
+}
+
+function isForbiddenPath(value) {
+  const file = normalizePath(value);
+  if (!file) return false;
+  const base = file.split("/").pop().toLowerCase();
+  if (FORBIDDEN_BASENAMES.has(base)) return true;
+  return file === "tests" || file.startsWith("tests/") || file.includes("/tests/");
 }
 
 function isWriteCall(exec) {
@@ -101,18 +118,26 @@ function stateOf(agent) {
       lastState: null,
       hasTest: false,
       steers: 0,
+      forbiddenWrites: [],
     };
     states.set(agent, state);
   }
   return state;
 }
 
-function remember(agent, exec, result) {
+function remember(agent, exec, result, strictPaths) {
   const state = stateOf(agent);
   state.steps += 1;
 
   if (isWriteCall(exec)) {
     state.lastWrite = state.steps;
+    if (strictPaths) {
+      const args = exec.arguments || {};
+      const file = normalizePath(args.file_path || args.path);
+      if (isForbiddenPath(file) && !state.forbiddenWrites.includes(file)) {
+        state.forbiddenWrites.push(file);
+      }
+    }
     return;
   }
 
@@ -134,11 +159,12 @@ function problems(state) {
   if (state.lastState && state.lastState.length) {
     rules.push(state.lastState[0] === "<pytest_no_case>" ? "test_not_runnable" : "last_test_red");
   }
+  if (state.forbiddenWrites.length) rules.push("forbidden_write");
   return rules;
 }
 
 function steerText(rules, state) {
-  return [
+  const lines = [
     "You are about to finish, but this session has no passing test result after the last edit.",
     "",
     `Observed: ${rules.join(", ")}`,
@@ -146,7 +172,15 @@ function steerText(rules, state) {
     "",
     "Before finishing: run the project's test suite (`python -m pytest -q` or the configured judge).",
     "If it cannot run, report the exact blocking error instead of claiming success.",
-  ].join("\n");
+  ];
+  if (rules.includes("forbidden_write")) {
+    lines.push(
+      "",
+      `You modified test or harness config files: ${state.forbiddenWrites.join(", ")}.`,
+      "Revert them unless the task explicitly requires the change; if it is required, run the tests again after keeping it.",
+    );
+  }
+  return lines.join("\n");
 }
 
 function message(text, summary) {
@@ -176,7 +210,7 @@ export function apply(ctx, config = {}) {
 
   ctx.on("tools/post-execute", async (exec, result, next) => {
     try {
-      if (exec.agent) remember(exec.agent, exec, result);
+      if (exec.agent) remember(exec.agent, exec, result, cfg.strictPaths);
     } catch (error) {
       console.error(`[fbs-intervene] observe failed: ${error}`);
     }

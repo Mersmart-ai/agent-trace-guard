@@ -2,8 +2,10 @@
 
 Process-conformance monitoring for coding agents.
 
-> 当前状态：**pilot / rules-only**。统计模型（Fisher）没有证明稳定的增量价值，
-> 正式监控器采用可解释的过程规则；实验与负结果见 `reports/`。
+> 当前状态：**pilot / rules-only + dsh 集成**。统计模型（Fisher）没有证明稳定的
+> 增量价值，正式监控器采用可解释的过程规则；已把监控和 turn-stopping 干预接到
+> DeepSeek Harness。小任务上干预不改变结果；描述不全的 boltons 探针有 1 个
+> 正结果（单 seed）。实验与负结果见 `reports/`。
 
 ## 这是什么
 
@@ -32,6 +34,8 @@ data/traces/            # 新 trace（gitignored）
 tasks/                  # 题库
 docs/                   # 预注册、日志、文献
 scripts/                # 开发脚本
+integrations/           # dsh 插件：observe / turn-stopping guard
+experiments/            # 零成本实验、dsh_adapter.py
 ```
 
 ## 快速开始
@@ -65,7 +69,7 @@ python run.py
 from fbs.analysis.monitor import rule_alarms, strict_alarms
 
 alarms = rule_alarms(trace["steps"])
-# [{"rule": "delta", "step": 5, "detail": "delta_fails=1"}, ...]
+# [{"rule": "delta", "step": 5, "detail": "new_red=test_x"}, ...]
 ```
 
 - **strict**：`no_verify / delta / dup2 / error / long_gap / unverified_write`
@@ -73,6 +77,18 @@ alarms = rule_alarms(trace["steps"])
 - 最终评估：`reports/final_eval.md`
 - Fisher 负结果：`reports/fisher_value.md`
 - 长程故障注入：`reports/long_horizon_probe.md`
+
+## dsh 集成
+
+把监控层接到 DeepSeek Harness（dsh），不依赖本项目较弱的 harness：
+
+- `experiments/dsh_adapter.py`：把 dsh 的 JSONL 事件映射成我们的 step history；
+- `integrations/dsh-monitor/`：observe-only 插件，只写事件日志，不改变行为；
+- `integrations/dsh-intervene/`：turn-stopping guard；`shadow` 只记录，
+  `guard` 在 agent 想结束时检查“最后一次写之后有没有测试”，没有就 steer；
+- 结果与缺口：`reports/dsh_integration_status.md`；
+- 描述不全的 boltons 探针（第一例正结果）：
+  `reports/dsh_intervention_probe.md`。
 
 ## 数据
 
@@ -89,7 +105,8 @@ alarms = rule_alarms(trace["steps"])
 - [x] 正常轨迹特征（`analysis/features.py`）
 - [x] 规则监控（`analysis/monitor.py`）
 - [ ] 正常模型 + conformal（Fisher 未证明增量价值，暂不进入主线）
-- [ ] 长程运行时干预（最小 A/B 为负结果，见 `reports/intervention_ab.md`）
+- [x] 长程运行时干预：dsh turn-stopping（单 seed 正结果，见 `reports/dsh_intervention_probe.md`）
+- [ ] 自然长任务的 2–3 seed 复现
 - [ ] 评估与论文/简历材料
 
 ## 开源说明

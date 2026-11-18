@@ -5,6 +5,11 @@
 - 版本：v1（在任何新模型/新检测器实验之前冻结）
 - 状态：300 元简历/开源版 pilot 预注册；默认用现有 80 条 + 20–30 条新跑，SWE-bench/Terminal-Bench 为 stretch
 
+> **2026-11-18 方向说明**：Fisher/conformal 未证明稳定的增量价值，主线已改为
+> “规则过程监控 + 拒绝结束式干预（dsh turn-stopping）”。本文件保留为历史预注册，
+> 不再按 RQ1/RQ2 的 one-class 路线执行；最新结果见 `reports/final_eval.md`、
+> `reports/fisher_value.md`、`reports/dsh_intervention_probe.md`。
+
 ## 1. 研究问题
 
 - **RQ1**：只用健康成功（`clean_success`）轨迹，低维正常模型能否区分正常成功 / 异常成功 / 失败？

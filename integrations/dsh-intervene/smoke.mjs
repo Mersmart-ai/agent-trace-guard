@@ -1,17 +1,17 @@
 import { apply } from "./index.js";
 
-function fake(mode) {
+function fake(mode, maxSteers = 1) {
   const handlers = {};
   const ctx = { on: (name, fn) => { handlers[name] = fn; } };
-  apply(ctx, { mode, out: "data/dsh/intervene_test.jsonl", maxSteers: 1 });
+  apply(ctx, { mode, out: "data/dsh/intervene_test.jsonl", maxSteers });
   const agent = {
     id: `agent-${mode}`,
     steers: [],
     steer(message) { this.steers.push(message); },
   };
   const next = async () => ({ kind: "ok" });
-  const write = (name, text = "ok") => handlers["tools/post-execute"](
-    { agent, name, arguments: {} },
+  const write = (name, args = {}, text = "ok") => handlers["tools/post-execute"](
+    { agent, name, arguments: args },
     { content: [{ type: "text", text }] },
     next,
   );
@@ -71,6 +71,28 @@ const cases = [];
   t.stop();
   t.stop();
   cases.push(["max steers", t.agent.steers.length]);
+}
+
+{
+  const t = fake("guard");
+  await t.user();
+  await t.write("edit", { file_path: "pytest.ini" });
+  await t.test("154 passed");
+  t.stop();
+  cases.push([
+    "forbidden config write",
+    t.agent.steers.length,
+    t.agent.steers[0]?.content?.[0]?.text.includes("pytest.ini"),
+  ]);
+}
+
+{
+  const t = fake("guard", 2);
+  await t.user();
+  await t.write("edit");
+  t.stop();
+  t.stop();
+  cases.push(["two steers allowed", t.agent.steers.length]);
 }
 
 {

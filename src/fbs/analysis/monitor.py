@@ -9,7 +9,8 @@
   error      任意一步 ok == False（工具调用失败）
   long_gap   任意一步 since_test > 15（太久没显式 run_tests）
   unverified_write 最后一次写之后没有 run_tests（长程里常见）
-  blind      任意一次成功 write_file 的目标文件，写之前没读过（新建文件除外）
+  blind      任意一次成功 write_file 的目标文件，写之前没读过（只算 read_file，
+             grep 片段不算；新建文件除外）
 
 strict 规则 = no_verify + delta + dup2 + error + long_gap + unverified_write
 full 规则   = strict + blind

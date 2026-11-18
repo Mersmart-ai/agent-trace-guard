@@ -142,7 +142,9 @@
 - shadow：7 步、0 测试、最终 **1 failed / 153 passed**；
 - guard：29 步、2 次测试、最终 **154 passed**；
 - guard 靠强制验证抓到了未描述的 bug；代价是 +22 步；
-- 仅 1 个 seed，属于人为探针，不能当成自然长任务结论。
+- 仅 1 个 seed，属于人为探针，不能当成自然长任务结论；
+- 修复后的 guard 口径：`maxSteers=2`、`strictPaths` 触发
+  `forbidden_write`、`blind` 只认 `read_file`（`grep` 不算）。
 
 ## 3. 已发现的缺口（2026-11-18 已修 1–3、5；6–7 未修）
 
@@ -204,7 +206,8 @@
 5. ~~干预 A/B~~（task_0006 完成：机制有效、结果无提升、+3 步）
 6. ~~描述不全的 boltons probe~~（1 个正结果，见 2.4）
 7. 至少 2–3 个 seed 复现；优先自然长任务；记录 token/成本
-8. 决定 guard 口径：`maxSteers`、最后一次写必须验证、配置/测试文件变更
+8. ~~决定 guard 口径~~（`maxSteers=2`、`strictPaths`/`forbidden_write`、
+   `blind` 只算 `read_file`）
 9. 给 monitor 补 `no_case` 规则（见 3.7）
 
 ## 5. 当前运行状态
