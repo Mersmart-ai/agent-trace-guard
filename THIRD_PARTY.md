@@ -17,6 +17,15 @@ Verified 2026-11-18 via the GitHub license API and the upstream `LICENSE` text.
 The task directories contain modified subsets; keep the upstream copyright
 notices and do not relicense them.
 
+## Runtime dependency (not vendored)
+
+| Package | Upstream | License |
+|---|---|---|
+| `@deepseek-ai/dsh` | https://github.com/deepseek-ai/deepseek-harness | MIT |
+
+dsh is installed in the user's dsh profile, not copied into this repository.
+The plugins under `integrations/` use its Cordis plugin API.
+
 ## Before publishing
 
 1. [x] Check each upstream `LICENSE` and record the exact license name/version.

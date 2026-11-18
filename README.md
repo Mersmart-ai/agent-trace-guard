@@ -151,6 +151,13 @@ alarms = rule_alarms(trace["steps"])
 - [ ] 自然失败样本 + 2–3 个 seed
 - [ ] LLM 重试/退避、成本上限、打包
 
+## Acknowledgements
+
+- [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（MIT）：
+  agent loop、工具、沙箱和 Web UI 由 dsh 提供；本仓库增加监控/干预插件和离线分析。
+- DeepSeek 模型通过官方 API 调用。
+- 第三方题库来源见 `THIRD_PARTY.md`。
+
 ## 开源说明
 
 - 代码：MIT，见 [`LICENSE`](LICENSE)。
