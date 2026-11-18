@@ -96,9 +96,9 @@
 - P1-7：检查过 `docs/日志/`，未发现 key/密码；内容仍是个人开发记录，
   发布前由用户决定是否保留。
 - P2：`monitor.py` docstring、`policy.py` 的 `judge` 泄漏、
-  `run_tests` 的 `{python}` 引号已修；新增 `test_policy`、`test_tools`、
-  `test_cli`、`test_audit`。
-- 未处理：`ONLY` 写死、LLM 重试/退避、成本上限、`save_run` schema、
+  `run_tests` 的 `{python}` 引号、`ONLY` 写死（改为 `FBS_ONLY`）已修；
+  新增 `test_policy`、`test_tools`、`test_cli`、`test_audit`。
+- 未处理：LLM 重试/退避、成本上限、`save_run` schema、
   报告编号、`fast_judge_command/max_turns` 的行为测试。
 
 ## 4. 站得住的部分
