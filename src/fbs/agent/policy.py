@@ -111,19 +111,25 @@ def _compact(visible):
     return out
 
 
+def visible_history(history):
+    """给模型看的 history：剥掉 harness 内部字段。
+
+    test_state 是写后强制判分算出来的，不是模型自己测的；judge 是
+    fast/full 标签，会泄漏判据结构。两者都不该进模型上下文。
+    """
+    visible = []
+    for h in history:
+        h2 = dict(h)                    # 复制一份，别动原对象
+        h2.pop("test_state", None)
+        h2.pop("judge", None)
+        visible.append(h2)
+    return _compact(visible)            # 老步骤的结果截断，否则越跑越贵
+
+
 def model_policy(task_md):
     """方案 A：每轮把 history 拼成一段文字，塞进 user 消息里。"""
     def fn_inner(step, history):
-        # 给模型看的那份 history 要剥掉 test_state。
-        # 原因：write_file 这一步的 test_state 是 harness 强制判分算出来的，
-        #      不是模型自己测的。要是让它看见，它就永远不需要主动 run_tests，
-        #      "未验证就提交"这一类就统计不出来了。
-        visible = []
-        for h in history:
-            h2 = dict(h)                    # 复制一份，别动原对象
-            h2.pop("test_state", None)      # 删掉这个键；不存在也不报错
-            visible.append(h2)
-        visible = _compact(visible)         # 老步骤的结果截断，否则越跑越贵
+        visible = visible_history(history)
         history_text = json.dumps(visible, ensure_ascii=False)
 
         messages = [

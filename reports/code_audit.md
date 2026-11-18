@@ -87,6 +87,20 @@
 - 测试没覆盖 `fast_judge_command/max_turns`、`run_tests` 超时、
   `audit.classify_run`、`real_runs` 最终判据
 
+### 2026-11-18 已处理
+
+- P1-5：README / prereg / pyproject 已改为“规则监控 + turn-stopping 干预”主线；
+  prereg 顶部保留历史说明。
+- P1-6：`THIRD_PARTY.md` 已核对 QuixBugs / requests / boltons / Django /
+  Terminal-Bench 2.1 的上游 license。
+- P1-7：检查过 `docs/日志/`，未发现 key/密码；内容仍是个人开发记录，
+  发布前由用户决定是否保留。
+- P2：`monitor.py` docstring、`policy.py` 的 `judge` 泄漏、
+  `run_tests` 的 `{python}` 引号已修；新增 `test_policy`、`test_tools`、
+  `test_cli`、`test_audit`。
+- 未处理：`ONLY` 写死、LLM 重试/退避、成本上限、`save_run` schema、
+  报告编号、`fast_judge_command/max_turns` 的行为测试。
+
 ## 4. 站得住的部分
 
 - `agent_loop` 的强制判分、workspace 重置、隐藏测试、bash 白名单

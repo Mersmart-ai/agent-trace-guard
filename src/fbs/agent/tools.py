@@ -5,6 +5,7 @@ agent_loop 根据模型选的工具名，来这里调对应的函数。
 """
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -252,6 +253,14 @@ def grep(workspace, pattern, path="."):
     return "\n".join(hits) if hits else "（没有匹配）"
 
 
+def render_command(command, python):
+    """把命令里的 {python} 换成带引号的解释器路径。
+
+    路径带空格（Windows 的 Program Files）时不加引号会被 shell 拆成两个词。
+    """
+    return command.replace("{python}", shlex.quote(python))
+
+
 def run_tests(workspace, tests, python=None, command=None, timeout=None):
     """
     此函数用来检验agent修改后的结果是否正确
@@ -273,7 +282,7 @@ def run_tests(workspace, tests, python=None, command=None, timeout=None):
         # 同时把 workspace 和 workspace/tests 都加进 PYTHONPATH，
         # 因为 runtests.py 需要能 import 到 django 包和测试模块。
         env["PYTHONPATH"] = os.pathsep.join([str(ws), str(ws / "tests")])
-        args = [BASH, "-c", command.replace("{python}", py)]
+        args = [BASH, "-c", render_command(command, py)]
         run_cwd = str(ws)          # 命令要在工作区里跑
         parse = parse_unittest_failed
     else:
