@@ -163,6 +163,8 @@ def map_step(event, events, strict_exit=False):
 
     if name == "read":
         tool = "read_file"
+        # dsh 的 read 用 file_path；features/monitor 统一看 path。
+        args = {**args, "path": args.get("file_path", "")}
     elif name in ("edit", "write"):
         tool = "write_file"
         # edit 用 old_string/new_string，write 用 content；

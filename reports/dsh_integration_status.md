@@ -146,7 +146,7 @@
 - 修复后的 guard 口径：`maxSteers=2`、`strictPaths` 触发
   `forbidden_write`、`blind` 只认 `read_file`（`grep` 不算）。
 
-## 3. 已发现的缺口（2026-11-18 已修 1–3、5；6–7 未修）
+## 3. 已发现的缺口（2026-11-18 已修 1–3、5、8；6–7 未修）
 
 1. **dsh 的 `isError` 不够** ✅
    - `python -m pytest` 实际 exit 1（No module named pytest），但 `isError=false`
@@ -196,6 +196,12 @@
    - JS guard 抓到了 `test_not_runnable`，说明两层口径不一致
    - 下一步：在 monitor 增加 `no_case` 规则，或在 `unverified_write` 里
      把 `NO_CASE` 当成“未验证”
+
+8. **dsh adapter 的 read 参数没归一化** ✅
+   - dsh 的 `read` 用 `file_path`，`features` 统一看 `path`；导致 `blind`
+     在真实 trace 上误报“没读就写”
+   - 已修：`read` 步骤同时写入 `args["path"]`；加了 read→edit 不报
+     `blind` 的单测
 
 ## 4. 下一步
 

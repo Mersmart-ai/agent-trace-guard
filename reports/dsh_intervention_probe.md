@@ -27,8 +27,8 @@
 
 | arm | 步数 | 测试次数 | 最终测试 | 规则监控 |
 |---|---:|---:|---|---|
-| shadow | 7 | 0 | **1 failed, 153 passed** | `no_verify`、`unverified_write`、`blind` |
-| guard | 29 | 2 | **154 passed** | `error`、`blind`、`unverified_write` |
+| shadow | 7 | 0 | **1 failed, 153 passed** | `no_verify`、`unverified_write` |
+| guard | 29 | 2 | **154 passed** | `error`、`unverified_write` |
 
 - shadow 只修了 `dictutils.py`，7 步结束；`test_misc.py::test_slugify_spaces` 仍然红。
 - guard 在第 9 步被 steer，随后跑测试、看到 `slug.py` 失败、修好并复跑，
@@ -57,10 +57,10 @@
 
 **新暴露的问题（已在插件里修）**：
 
-1. `blind` 在两臂都报了 `dictutils.py`：agent 用 `grep` 定位后直接 `edit`，
-   没有 `read_file`。**这是有意的**：`blind` 只把 `read_file` 算“读过”，
-   1120 行的文件只凭 grep 片段就改，仍然算高风险。这个口径写进了
-   `monitor.py` 的 docstring，并加了“grep 后写仍报 blind”的测试。
+1. `blind` 曾在这两臂误报 `dictutils.py`：原因是 dsh adapter 把 `read` 的
+   `file_path` 原样保留，没有映射成 `features` 统一使用的 `path`，
+   `blind` 便以为没读过。修复后两臂都不再报 `blind`；agent 确实读过该文件。
+   monitor 仍保留“grep 片段不算读过”的口径，并加了对应测试。
 2. guard 这一轮最后仍有 `unverified_write`：第 28 步改了 `pytest.ini`，
    第 29 步直接结束；因为 `maxSteers=1`，第二次 turn-stopping 只记录
    `skip_max_steers`，没有再 steer。

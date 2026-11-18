@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from fbs.agent.judge import NO_CASE
+from fbs.analysis.monitor import rule_alarms
 from experiments.dsh_adapter import (
     is_pwsh_write,
     is_test_command,
@@ -170,3 +171,23 @@ def test_map_history_reads_results_by_call_id():
     assert session == "s1"
     assert [step["step"] for step in history] == [1, 2]
     assert [step["tool"] for step in history] == ["read_file", "read_file"]
+
+
+def test_map_read_uses_file_path_as_path():
+    step = _map("read", {"file_path": "src/a.py"}, "1: x")
+    assert step["args"]["path"] == "src/a.py"
+
+
+def test_map_history_read_then_edit_no_blind():
+    rows = [
+        {"ts": 1, "session": "s1",
+         "event": _call("read", {"file_path": "a.py"}, "c1")},
+        {"ts": 2, "session": "s1", "event": _result("1: x", "c1")},
+        {"ts": 3, "session": "s1",
+         "event": _call("edit", {"file_path": "a.py",
+                                 "old_string": "x", "new_string": "y"}, "c2")},
+        {"ts": 4, "session": "s1", "event": _result("updated", "c2")},
+    ]
+    _, history = map_history(rows)
+    names = [alarm["rule"] for alarm in rule_alarms(history)]
+    assert "blind" not in names
