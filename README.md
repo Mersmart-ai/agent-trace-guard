@@ -61,7 +61,8 @@ python -m fbs.data.audit \
 python run.py
 ```
 
-`ONLY` 在 `src/fbs/cli.py` 里，用于单任务调试。
+`FBS_ONLY=tasks/task_0001 python run.py` 只跑一个任务；`FBS_ONLY=all`
+跑全部；不设置时跑默认的 6 个歧义任务（避免误跑全部花钱）。
 
 ## 规则监控
 

@@ -12,6 +12,7 @@
 注意要在项目根目录下运行，tasks/ runs/ data/ 都是相对路径。
 """
 import json
+import os
 from pathlib import Path
 
 from fbs.agent.loop import agent_loop
@@ -32,14 +33,27 @@ def opts_from_meta(meta):
     return {key: meta[key] for key in OPT_KEYS if meta.get(key)}
 
 
-def main():
-    # 只跑一个任务：填相对路径，比如 "tasks/boltons_0002"
-    # 跑全部：改成 None
-    # 可以填一个路径、一个路径列表，或者 None（跑全部）
-    ONLY = ["tasks/amb_rename_vague", "tasks/amb_rename_clear", "tasks/amb_merge_vague", "tasks/amb_merge_clear", "tasks/amb_clean_vague", "tasks/amb_clean_clear"]
+# 不设置 FBS_ONLY 时的默认调试集：只跑 6 个歧义任务，避免误跑全部花钱。
+DEFAULT_ONLY = [
+    "tasks/amb_rename_vague", "tasks/amb_rename_clear",
+    "tasks/amb_merge_vague", "tasks/amb_merge_clear",
+    "tasks/amb_clean_vague", "tasks/amb_clean_clear",
+]
 
-    if isinstance(ONLY, str):
-        ONLY = [ONLY]
+
+def parse_only(value):
+    """解析 FBS_ONLY：空 -> 默认集；all -> 全部；否则逗号分隔的路径。"""
+    if not value:
+        return DEFAULT_ONLY
+    if value.strip().lower() == "all":
+        return None
+    return [part.strip() for part in value.split(",") if part.strip()]
+
+
+def main():
+    # 默认跑 DEFAULT_ONLY；FBS_ONLY=tasks/task_0001 只跑一个；
+    # FBS_ONLY=all 跑全部；也可以逗号分隔多个。
+    ONLY = parse_only(os.environ.get("FBS_ONLY"))
     todo = [Path(p) for p in ONLY] if ONLY else sorted(Path("tasks").iterdir())
 
     for task in todo:

@@ -1,5 +1,19 @@
 """cli 的配置透传：meta.json 里的 judge/超时/轮数必须全部交给 agent_loop。"""
-from fbs.cli import opts_from_meta
+from fbs.cli import DEFAULT_ONLY, opts_from_meta, parse_only
+
+
+def test_parse_only_default():
+    assert parse_only(None) == DEFAULT_ONLY
+    assert parse_only("") == DEFAULT_ONLY
+
+
+def test_parse_only_all():
+    assert parse_only("all") is None
+    assert parse_only("ALL") is None
+
+
+def test_parse_only_list():
+    assert parse_only("tasks/a, tasks/b") == ["tasks/a", "tasks/b"]
 
 
 def test_opts_from_meta_passes_all_loop_keys():
