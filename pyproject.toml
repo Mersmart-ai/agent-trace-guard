@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "first-bad-step"
+name = "agent-trace-guard"
 version = "0.1.0"
 description = "Process-conformance monitoring and turn-stopping intervention for coding agents"
 readme = "README.md"
