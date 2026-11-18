@@ -134,6 +134,16 @@
     `data/dsh/intervene.jsonl`
   - 改配置后要重启 dsh 进程才生效
 
+### 2.4 描述不全的 boltons probe（第一个正结果）
+
+详见 `reports/dsh_intervention_probe.md`。
+
+- 在 `boltons_0002` 上加一个 `TASK.md` 没写的 `slug.py` bug；
+- shadow：7 步、0 测试、最终 **1 failed / 153 passed**；
+- guard：29 步、2 次测试、最终 **154 passed**；
+- guard 靠强制验证抓到了未描述的 bug；代价是 +22 步；
+- 仅 1 个 seed，属于人为探针，不能当成自然长任务结论。
+
 ## 3. 已发现的缺口（2026-11-18 已修 1–3、5；6–7 未修）
 
 1. **dsh 的 `isError` 不够** ✅
@@ -188,13 +198,14 @@
 ## 4. 下一步
 
 1. ~~修 `experiments/dsh_adapter.py`~~（2026-11-18 完成）
-2. ~~给 adapter 补测试~~（`tests/test_dsh_adapter.py`，15 条；全套 52 passed）
+2. ~~给 adapter 补测试~~（`tests/test_dsh_adapter.py`，15 条；全套 63 passed）
 3. ~~再跑一个更难的任务~~（boltons_0002 完成，见 2.2）
 4. ~~在线干预~~（turn-stopping guard 完成，见 2.3）
 5. ~~干预 A/B~~（task_0006 完成：机制有效、结果无提升、+3 步）
-6. 下一轮：找“跳过测试会改错”的长任务（多 bug、跨文件），
-   至少 2–3 个 seed；预算 2–4 元
-7. 给 monitor 补 `no_case` 规则（见 3.7）
+6. ~~描述不全的 boltons probe~~（1 个正结果，见 2.4）
+7. 至少 2–3 个 seed 复现；优先自然长任务；记录 token/成本
+8. 决定 guard 口径：`maxSteers`、最后一次写必须验证、配置/测试文件变更
+9. 给 monitor 补 `no_case` 规则（见 3.7）
 
 ## 5. 当前运行状态
 
@@ -202,8 +213,8 @@
 - 需要时按上面的命令重新启动（`--profile fbs-web`）
 - 没有正在跑的 headless 任务
 - `data/dsh/events.jsonl` 混有多个 headless session（trivial / smoke / boltons /
-  task_0005 / task_0006）；`dsh_adapter.py` 默认取最新 session，
-  也可以用 `--session` 指定
+  task_0005 / task_0006 / underspec / boltons_probe）；
+  `dsh_adapter.py` 默认取最新 session，也可以用 `--session` 指定
 - `data/dsh/intervene.jsonl`：干预插件日志（`shadow` / `steer` /
   `skip_max_steers`）
 - 当前 `fbs-headless` 的干预模式已重置为 `shadow`
