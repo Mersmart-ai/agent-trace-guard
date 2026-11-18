@@ -25,3 +25,6 @@ experiments/dsh_workspace/
 
 # dsh 事件与干预日志：本地产物，开源前单独筛选
 data/dsh/
+
+# 实验性审批绕过插件：不公开
+integrations/dsh-autoapprove/

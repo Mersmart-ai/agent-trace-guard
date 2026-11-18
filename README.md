@@ -8,6 +8,16 @@ Process-conformance monitoring for coding agents.
 > 正结果（单 seed）；同一 Django 长任务上 dsh 43 步完成，自研 harness
 > 30/60 步失败。实验与负结果见 `reports/`。
 
+## Highlights
+
+| 实验 | 结果 |
+|---|---|
+| 同一 Django SWE-bench 任务 | 自研 harness 30–60 步、0 次写、7 条红；dsh **43 步、2 次写、217/217 通过** |
+| 规则监控 | 留出 clean 误报 **0/16**；80 条归档 + 23 条真实 trace 上报警 **6/23** |
+| 干预 A/B | 描述不全的 boltons 探针：shadow 交红，guard 强制验证后 **154/154**；小任务无收益 |
+
+当前是 **pilot**，不是成熟产品；限制和负结果都写在 `reports/`。
+
 ## 这是什么
 
 - 一个 agent harness：让模型在隔离工作区里读/改代码、跑测试，并记录每一步。
@@ -38,6 +48,16 @@ scripts/                # 开发脚本
 integrations/           # dsh 插件：observe / turn-stopping guard
 experiments/            # 零成本实验、dsh_adapter.py
 ```
+
+## Code map
+
+| 部分 | 行数 | 说明 |
+|---|---:|---|
+| `src/fbs/` | ~2.1k | 自研 harness + 监控 + 审计 |
+| `experiments/` | ~2.5k | 校准、dsh adapter、故障注入 |
+| `tests/` | ~0.8k | 77 条单测 |
+| `integrations/` | ~0.3k | dsh 监控/干预插件 |
+| `tasks/` | ~61k | 第三方题库（保留上游 license） |
 
 ## 快速开始
 
@@ -114,6 +134,13 @@ alarms = rule_alarms(trace["steps"])
 - [ ] Django 上的 `shadow` vs `guard` A/B
 - [ ] 自然长任务的 2–3 seed 复现
 - [ ] 评估与论文/简历材料
+
+## Roadmap
+
+- [ ] 把 `long_gap` 搬进在线干预（中途提醒，而不是只在结束时拦）
+- [ ] Django 上的 `shadow` vs `guard` A/B
+- [ ] 自然失败样本 + 2–3 个 seed
+- [ ] LLM 重试/退避、成本上限、打包
 
 ## 开源说明
 
