@@ -196,7 +196,8 @@ def read_file(workspace, path):
     if not full.is_relative_to(root):
         return "【错误】：路径越界"
     if not full.is_file():
-        return f"【错误】：该文件不存在，可用文件：{'\n'.join(list_files(workspace))}"
+        files = "\n".join(list_files(workspace))
+        return f"【错误】：该文件不存在，可用文件：{files}"
     return full.read_text(encoding="utf-8")
 
 
@@ -213,7 +214,8 @@ def write_file(workspace, path, content):
     if not full.is_relative_to(root):
         return "【错误】：路径越界"
     if not full.is_file():
-        return f"【错误】：该文件不存在，可用文件：{'\n'.join(list_files(workspace))}"
+        files = "\n".join(list_files(workspace))
+        return f"【错误】：该文件不存在，可用文件：{files}"
     full.write_text(content, encoding="utf-8")
     return "写入成功"
 
